@@ -1,0 +1,38 @@
+# Nuxt build artifacts
+.nuxt/
+.output/
+.data/
+dist/
+
+# Dependencies
+node_modules/
+
+# Claude Code
+.claude/
+
+# Environment files
+.env
+.env.*
+!.env.example
+.nuxtrc
+
+# Coverage
+coverage/
+
+# Local analysis artifacts
+.code-review-graph/
+
+# Editor files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*

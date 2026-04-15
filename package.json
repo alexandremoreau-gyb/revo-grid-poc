@@ -1,0 +1,30 @@
+{
+  "name": "revo-grid-poc",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "pretest": "node -e \"require('fs').mkdirSync('coverage/.tmp', { recursive: true })\"",
+    "test": "vitest run --coverage tests/unit/components/grid",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxtjs/i18n": "^10.2.4",
+    "@revolist/vue3-datagrid": "^4.21.4",
+    "nuxt": "^4.4.2",
+    "vue": "^3.5.32",
+    "vue-router": "^5.0.4"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^4.0.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "@vitest/coverage-v8": "^4.1.4",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^20.9.0",
+    "tailwindcss": "^4.2.2",
+    "vitest": "^4.1.4"
+  }
+}

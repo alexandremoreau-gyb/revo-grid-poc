@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useTheme } from '~/composables/useTheme'
 import { useSidebar } from '~/composables/useSidebar'
 
 const mobileOpen = ref(false)
 const { collapsed } = useSidebar()
-const { isDark, toggle } = useTheme()
-const { locale, setLocale } = useI18n()
 
-function switchLocale() {
-  setLocale(locale.value === 'fr' ? 'en' : 'fr')
-}
+const navItems = [
+  {
+    href: '/',
+    label: 'Suivi des dossiers',
+    active: true,
+    icon: `<rect x="2" y="3" width="12" height="2" rx="1"/><rect x="2" y="7" width="12" height="2" rx="1"/><rect x="2" y="11" width="8" height="2" rx="1"/>`,
+  },
+  {
+    href: '/demo',
+    label: 'Démo crypto (readonly)',
+    active: false,
+    icon: `<circle cx="8" cy="8" r="5.5"/><path stroke-linecap="round" d="M6 8h4M8 6v4"/>`,
+  },
+]
 </script>
 
 <template>
@@ -35,7 +43,7 @@ function switchLocale() {
 
   <!-- sidebar -->
   <aside
-    class="fixed left-0 top-0 z-40 flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)] transition-all duration-200"
+    class="fixed left-0 top-0 z-40 flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-200"
     :class="[
       collapsed ? 'w-[56px]' : 'w-[220px]',
       mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
@@ -43,26 +51,25 @@ function switchLocale() {
   >
     <!-- brand -->
     <div
-      class="flex h-14 shrink-0 items-center border-b border-[var(--color-border)] px-3.5"
+      class="flex h-14 shrink-0 items-center border-b border-[var(--color-border)] px-4"
       :class="collapsed ? 'justify-center' : 'justify-between'"
     >
-      <div v-if="!collapsed" class="flex items-center gap-2 overflow-hidden">
-        <span class="whitespace-nowrap text-sm font-bold tracking-tight text-[var(--color-text)]">
-          Grid<span class="text-[var(--color-primary)]">Lab</span>
+      <div v-if="!collapsed" class="flex items-center gap-2">
+        <!-- Logo texte OTC Flow -->
+        <span class="text-sm font-bold tracking-tight text-[var(--color-text)]">
+          OTC<span class="text-[var(--color-primary)]">≡</span>FLOW
         </span>
         <span class="rounded-full bg-[var(--color-primary)]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[var(--color-primary)]">
-          rv-grid
+          POC
         </span>
       </div>
-
       <div v-else class="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary)]/10">
-        <span class="text-xs font-bold text-[var(--color-primary)]">G</span>
+        <span class="text-xs font-bold text-[var(--color-primary)]">O</span>
       </div>
 
-      <!-- collapse toggle (desktop only) -->
       <button
+        v-if="!collapsed"
         class="hidden shrink-0 rounded-lg p-1 text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-strong)] hover:text-[var(--color-text)] lg:flex"
-        :class="collapsed ? 'hidden' : ''"
         type="button"
         @click="collapsed = !collapsed"
       >
@@ -72,56 +79,53 @@ function switchLocale() {
       </button>
     </div>
 
-    <!-- nav items (placeholder) -->
-    <nav class="flex-1 overflow-y-auto px-2 py-3">
+    <!-- caption -->
+    <div v-if="!collapsed" class="shrink-0 px-4 pt-4 pb-1">
+      <p class="eyebrow">Navigation</p>
+    </div>
+
+    <!-- nav -->
+    <nav class="flex-1 overflow-y-auto px-2 py-1">
       <a
-        href="/"
-        class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--color-text)] bg-[var(--color-primary)]/8"
-        :class="collapsed ? 'justify-center px-0' : ''"
+        v-for="item in navItems"
+        :key="item.href"
+        :href="item.href"
+        class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition"
+        :class="[
+          collapsed ? 'justify-center px-0' : '',
+          item.active
+            ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
+            : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-strong)] hover:text-[var(--color-text)]',
+        ]"
       >
-        <svg class="h-4 w-4 shrink-0 text-[var(--color-primary)]" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-          <rect x="1" y="1" width="6" height="6" rx="1.5" />
-          <rect x="9" y="1" width="6" height="6" rx="1.5" />
-          <rect x="1" y="9" width="6" height="6" rx="1.5" />
-          <rect x="9" y="9" width="6" height="6" rx="1.5" />
-        </svg>
-        <span v-if="!collapsed" class="truncate">Crypto Grid</span>
+        <svg
+          class="h-4 w-4 shrink-0"
+          :class="item.active ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-soft)]'"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          v-html="item.icon"
+        />
+        <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
       </a>
     </nav>
 
-    <!-- bottom controls -->
-    <div class="shrink-0 border-t border-[var(--color-border)] p-2 space-y-1">
-      <!-- theme toggle -->
+    <!-- bas sidebar : bouton collapse -->
+    <div class="shrink-0 border-t border-[var(--color-border)] p-2">
       <button
-        class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-strong)] hover:text-[var(--color-text)]"
-        :class="collapsed ? 'justify-center px-0' : ''"
+        v-if="collapsed"
+        class="flex w-full items-center justify-center rounded-lg p-2 text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-strong)] hover:text-[var(--color-text)]"
         type="button"
-        @click="toggle"
+        @click="collapsed = !collapsed"
       >
-        <svg class="h-4 w-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path v-if="isDark" stroke-linecap="round" stroke-linejoin="round" d="M8 1v1M8 14v1M1 8h1M14 8h1M3.05 3.05l.7.7M12.24 12.24l.7.7M12.24 3.75l-.7.7M3.76 12.24l-.7.7M8 5a3 3 0 100 6 3 3 0 000-6z" />
-          <path v-else stroke-linecap="round" stroke-linejoin="round" d="M14 9.5A6 6 0 016.5 2a6 6 0 000 12 6 6 0 007.5-4.5z" />
+        <svg class="h-4 w-4" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" d="M5 2l5 5-5 5" />
         </svg>
-        <span v-if="!collapsed" class="truncate text-xs font-medium">
-          {{ isDark ? 'Mode clair' : 'Mode sombre' }}
-        </span>
       </button>
-
-      <!-- locale toggle -->
-      <button
-        class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-strong)] hover:text-[var(--color-text)]"
-        :class="collapsed ? 'justify-center px-0' : ''"
-        type="button"
-        @click="switchLocale"
-      >
-        <svg class="h-4 w-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-          <circle cx="8" cy="8" r="6.5" />
-          <path stroke-linecap="round" d="M8 1.5c-2 2-3 4-3 6.5s1 4.5 3 6.5M8 1.5c2 2 3 4 3 6.5s-1 4.5-3 6.5M1.5 8h13" />
-        </svg>
-        <span v-if="!collapsed" class="truncate text-xs font-medium uppercase tracking-wide">
-          {{ locale === 'fr' ? 'EN' : 'FR' }}
-        </span>
-      </button>
+      <div v-else class="px-1 pb-1">
+        <p class="text-[10px] text-[var(--color-text-soft)]">OTC Flow © 2026</p>
+      </div>
     </div>
   </aside>
 </template>

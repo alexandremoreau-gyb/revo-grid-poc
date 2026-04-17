@@ -61,8 +61,8 @@ function onCellEdit(payload: { rowIndex: number; prop: string; val: unknown }) {
   if (absoluteIndex !== -1) {
     // Mutation directe — Vue 3 Proxy détecte le changement sur l'objet
     ;(allRows.value[absoluteIndex] as Record<string, unknown>)[payload.prop] = payload.val
+    showToast('Modification réussie')
   }
-  showToast('Modification réussie')
 }
 
 // Compteurs résumé

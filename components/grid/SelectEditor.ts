@@ -40,13 +40,18 @@ export class SelectEditor {
       select.appendChild(option)
     })
 
+    let changed = false
+
     select.addEventListener('change', () => {
+      changed = true
       config.addEditEvent(select.value)
       config.close()
     })
 
     // Ferme sans sauver si l'utilisateur clique ailleurs
-    select.addEventListener('blur', () => config.close())
+    select.addEventListener('blur', () => {
+      if (!changed) config.close()
+    })
 
     this.element = select
     // Ouvre le dropdown automatiquement à l'activation

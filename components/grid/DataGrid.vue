@@ -5,43 +5,54 @@ import VGrid, { VGridVueTemplate } from '@revolist/vue3-datagrid'
 import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
 import type { ColumnDef, GridColumnVariant, GridFilterState, GridSortState, RowData } from '~/types/grid'
 
+interface CellEditPayload {
+  rowIndex: number
+  prop: string
+  val: unknown
+}
+
 interface Props {
   columns: ColumnDef[]
   rows: RowData[]
   loading?: boolean
   height?: number
   selectable?: boolean
+  editable?: boolean
   enableSorting?: boolean
   enableColumnFilters?: boolean
+  // Record d'éditeurs custom : { 'nom-editor': instanceDeSelectEditor }
+  editors?: Record<string, unknown>
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
-  height: 420,
+  height: 520,
   selectable: false,
+  editable: false,
   enableSorting: true,
   enableColumnFilters: false,
+  editors: () => ({}),
 })
 
 const emit = defineEmits<{
   'sort-change': [state: GridSortState]
   'filter-change': [state: GridFilterState]
   'row-select': [rows: RowData[]]
+  'cell-edit': [payload: CellEditPayload]
 }>()
 
 const { t } = useI18n()
 
-const panelStyle = computed(() => ({ maxHeight: '700px' }))
+const panelStyle = computed(() => ({ maxHeight: '800px' }))
 const loadingStyle = computed(() => ({ minHeight: `${props.height}px` }))
 const gridStyle = computed(() => ({ height: `${props.height}px` }))
 
-// Les templates doivent être créés pendant le setup() où getCurrentInstance() est valide.
-// VGridVueTemplate() appelle getCurrentInstance() en interne pour capturer le contexte Vue.
-// Son 2e argument est un objet de props STATIQUES mergé avec le cell-model de revo-grid
-// (qui fournit `model` et `prop` — d'où GridCellRenderer tire la valeur réelle).
+// VGridVueTemplate doit être créé pendant setup() où getCurrentInstance() est valide.
+// Son 2e argument est un objet de props STATIQUES mergé avec le cell-model de revo-grid.
 const ALL_VARIANTS: GridColumnVariant[] = [
   'selection', 'id', 'symbol', 'price', 'large_number', 'trend', 'percent',
-  'tags', 'bool', 'status', 'currency', 'date', 'progress', 'email', 'company', 'actions', 'text',
+  'tags', 'bool', 'status', 'currency', 'date', 'progress', 'email', 'company',
+  'actions', 'text', 'dossier-status', 'risk',
 ]
 const variantTemplates = Object.fromEntries(
   ALL_VARIANTS.map(variant => [variant, VGridVueTemplate(GridCellRenderer, { variant })])
@@ -62,16 +73,21 @@ function onSortingConfigChanged(event: CustomEvent<GridSortState>) {
 function onFilterConfigChanged(event: CustomEvent<GridFilterState>) {
   emit('filter-change', event.detail)
 }
+
+function onAfterEdit(event: CustomEvent<{ val: unknown; prop: string; rowIndex: number }>) {
+  const { val, prop, rowIndex } = event.detail
+  emit('cell-edit', { rowIndex, prop, val })
+}
 </script>
 
 <template>
   <div
-    class="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
+    class="flex h-full flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]"
     :style="panelStyle"
   >
     <div
       v-if="loading || !rows.length"
-      class="flex flex-1 items-center justify-center bg-[linear-gradient(180deg,rgba(148,163,184,0.04),transparent)] text-sm text-[var(--color-text-muted)]"
+      class="flex flex-1 items-center justify-center text-sm text-[var(--color-text-muted)]"
       :style="loadingStyle"
     >
       {{ loading ? t('common.loading') : t('common.noData') }}
@@ -82,11 +98,13 @@ function onFilterConfigChanged(event: CustomEvent<GridFilterState>) {
         :columns="revoColumns"
         :source="rows"
         :filter="enableColumnFilters"
-        :readonly="true"
+        :readonly="!editable"
+        :editors="editors"
         :style="gridStyle"
         theme="compact"
         @sortingconfigchanged="onSortingConfigChanged"
         @filterconfigchanged="onFilterConfigChanged"
+        @afteredit="onAfterEdit"
       />
     </ClientOnly>
   </div>

@@ -1,5 +1,6 @@
 import { createI18n } from 'vue-i18n'
 import { mount } from '@vue/test-utils'
+import VGrid from '@revolist/vue3-datagrid'
 import { describe, expect, it } from 'vitest'
 
 import DataGrid from '~/components/grid/DataGrid.vue'
@@ -41,10 +42,15 @@ const baseRows: RowData[] = [
   },
 ]
 
+// ClientOnly est un composant Nuxt qui ne rend rien côté serveur/test.
+// On le remplace par un stub transparent qui passe simplement son slot.
+const ClientOnlyStub = { template: '<slot />' }
+
 function mountGrid(props: Record<string, unknown> = {}) {
   return mount(DataGrid, {
     global: {
       plugins: [i18n],
+      stubs: { ClientOnly: ClientOnlyStub },
     },
     props: {
       columns: baseColumns,
@@ -85,41 +91,57 @@ describe('DataGrid', () => {
     expect(styledDivs[1]?.attributes('style')).toContain('min-height: 280px')
   })
 
-  it('rend les cellules avec les variantes de mise en forme produit', () => {
+  it('passe les colonnes avec cellTemplate aux colonnes qui ont un variant', () => {
     // Arrange / Act
     const wrapper = mountGrid()
+    const grid = wrapper.findComponent(VGrid)
 
     // Assert
-    expect(wrapper.find('thead').text()).toContain('Symbol')
-    expect(wrapper.findAll('tbody tr')).toHaveLength(2)
-    expect(wrapper.text()).toContain('BTC')
-    expect(wrapper.text()).toContain('$42,500')
-    expect(wrapper.text()).toContain('+3.42%')
-    expect(wrapper.text()).toContain('DeFi')
-    expect(wrapper.text()).toContain('+1')
-    expect(wrapper.html()).toContain('bg-emerald-500')
-    expect(wrapper.html()).toContain('bg-violet-50')
+    expect(grid.exists()).toBe(true)
+    const cols = (grid.vm.$attrs.columns ?? grid.vm.$props.columns) as any[]
+    const symbolCol = cols.find((c: any) => c.prop === 'symbol')
+    const priceCol = cols.find((c: any) => c.prop === 'price')
+    expect(typeof symbolCol?.cellTemplate).toBe('function')
+    expect(typeof priceCol?.cellTemplate).toBe('function')
   })
 
-  it('utilise les libelles de colonnes et les clefs de lignes de secours', () => {
+  it('passe les lignes dans source et résout les noms de colonnes de secours', () => {
     // Arrange
     const wrapper = mountGrid({
       columns: [
         { prop: 'slug', label: 'Slug' },
         { prop: 'value' },
       ] as ColumnDef[],
-      rows: [
-        { slug: 'alpha', value: 'A' },
-      ] as RowData[],
+      rows: [{ slug: 'alpha', value: 'A' }] as RowData[],
     })
 
     // Act
-    const headers = wrapper.findAll('thead th').map(th => th.text())
+    const grid = wrapper.findComponent(VGrid)
 
     // Assert
-    expect(headers).toEqual(['Slug', 'value'])
-    expect(wrapper.findAll('tbody tr')).toHaveLength(1)
-    expect(wrapper.text()).toContain('alpha')
-    expect(wrapper.text()).toContain('A')
+    expect(grid.exists()).toBe(true)
+    const cols = (grid.vm.$attrs.columns ?? grid.vm.$props.columns) as any[]
+    expect(cols[0].name).toBe('Slug')
+    expect(cols[1].name).toBe('value')
+    const source = (grid.vm.$attrs.source ?? grid.vm.$props.source) as any[]
+    expect(source).toHaveLength(1)
+  })
+
+  it('relaie les events de tri et de filtre vers les emits métier', () => {
+    // Arrange
+    const wrapper = mountGrid({
+      enableColumnFilters: true,
+    })
+    const grid = wrapper.findComponent(VGrid)
+    const sortState = { columns: [{ prop: 'price', order: 'asc' }] }
+    const filterState = { columns: [{ prop: 'symbol', value: 'BTC' }] }
+
+    // Act
+    grid.vm.$emit('sortingconfigchanged', { detail: sortState })
+    grid.vm.$emit('filterconfigchanged', { detail: filterState })
+
+    // Assert
+    expect(wrapper.emitted('sort-change')?.[0]).toEqual([sortState])
+    expect(wrapper.emitted('filter-change')?.[0]).toEqual([filterState])
   })
 })

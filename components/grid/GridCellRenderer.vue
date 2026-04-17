@@ -18,8 +18,38 @@ interface GridCellRendererProps {
 
 const props = defineProps<GridCellRendererProps>()
 
-const value = computed(() => String(props.value ?? ''))
-const numericValue = computed(() => Number(props.value ?? 0))
+// Valeur brute : priorité à `value` (usage direct / tests), sinon dérivée de model[prop]
+// (revo-grid cellTemplate injecte les données via model + prop, pas via value directement)
+const rawValue = computed(() =>
+  props.value !== undefined ? props.value : props.model?.[props.prop as string]
+)
+
+// Couleur de pastille par tag sémantique — chaque domaine crypto a sa teinte
+const TAG_COLOR_MAP: Record<string, string> = {
+  DeFi:             'bg-blue-50   text-blue-700   ring-blue-200/70   dark:bg-blue-500/12   dark:text-blue-300   dark:ring-blue-500/25',
+  Layer1:           'bg-violet-50 text-violet-700 ring-violet-200/70 dark:bg-violet-500/12 dark:text-violet-300 dark:ring-violet-500/25',
+  Layer2:           'bg-purple-50 text-purple-700 ring-purple-200/70 dark:bg-purple-500/12 dark:text-purple-300 dark:ring-purple-500/25',
+  NFT:              'bg-pink-50   text-pink-700   ring-pink-200/70   dark:bg-pink-500/12   dark:text-pink-300   dark:ring-pink-500/25',
+  Gaming:           'bg-orange-50 text-orange-700 ring-orange-200/70 dark:bg-orange-500/12 dark:text-orange-300 dark:ring-orange-500/25',
+  DAO:              'bg-teal-50   text-teal-700   ring-teal-200/70   dark:bg-teal-500/12   dark:text-teal-300   dark:ring-teal-500/25',
+  Bridge:           'bg-sky-50    text-sky-700    ring-sky-200/70    dark:bg-sky-500/12    dark:text-sky-300    dark:ring-sky-500/25',
+  Oracle:           'bg-amber-50  text-amber-700  ring-amber-200/70  dark:bg-amber-500/12  dark:text-amber-300  dark:ring-amber-500/25',
+  DEX:              'bg-indigo-50 text-indigo-700 ring-indigo-200/70 dark:bg-indigo-500/12 dark:text-indigo-300 dark:ring-indigo-500/25',
+  Lending:          'bg-emerald-50 text-emerald-700 ring-emerald-200/70 dark:bg-emerald-500/12 dark:text-emerald-300 dark:ring-emerald-500/25',
+  'Store of Value': 'bg-yellow-50 text-yellow-700 ring-yellow-200/70 dark:bg-yellow-500/12 dark:text-yellow-300 dark:ring-yellow-500/25',
+  'Smart Contracts':'bg-cyan-50   text-cyan-700   ring-cyan-200/70   dark:bg-cyan-500/12   dark:text-cyan-300   dark:ring-cyan-500/25',
+  Metaverse:        'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200/70 dark:bg-fuchsia-500/12 dark:text-fuchsia-300 dark:ring-fuchsia-500/25',
+  Storage:          'bg-slate-100 text-slate-600 ring-slate-200/70 dark:bg-slate-500/12 dark:text-slate-300 dark:ring-slate-500/25',
+  Privacy:          'bg-rose-50   text-rose-700   ring-rose-200/70   dark:bg-rose-500/12   dark:text-rose-300   dark:ring-rose-500/25',
+}
+const TAG_DEFAULT_COLOR = 'bg-slate-100 text-slate-600 ring-slate-200/70 dark:bg-slate-500/12 dark:text-slate-300 dark:ring-slate-500/25'
+
+function tagColor(tag: string): string {
+  return TAG_COLOR_MAP[tag] ?? TAG_DEFAULT_COLOR
+}
+
+const value = computed(() => String(rawValue.value ?? ''))
+const numericValue = computed(() => Number(rawValue.value ?? 0))
 const dateLocale = 'fr-FR'
 
 // --- price ---
@@ -61,7 +91,7 @@ const dateValue = computed(() => {
 
 // --- tags ---
 const tagsArray = computed(() => {
-  const v = props.value
+  const v = rawValue.value
   if (Array.isArray(v)) return v as string[]
   if (typeof v === 'string') return v.split(',').map(t => t.trim())
   return []
@@ -69,7 +99,7 @@ const tagsArray = computed(() => {
 
 // --- bool ---
 const boolValue = computed(() => {
-  const v = props.value
+  const v = rawValue.value
   if (typeof v === 'boolean') return v
   return String(v).toLowerCase() === 'true'
 })
@@ -126,11 +156,12 @@ const currencyValue = computed(() =>
     {{ value }}
   </span>
 
-  <!-- symbol -->
+  <!-- symbol : pill avec un dot d'accent -->
   <span
     v-else-if="variant === 'symbol'"
-    class="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/8 px-2.5 py-1 text-xs font-bold tracking-wide text-[var(--color-primary)]"
+    class="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/8 px-2 py-0.5 text-xs font-bold tracking-wide text-[var(--color-primary)] ring-1 ring-[var(--color-primary)]/15"
   >
+    <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-primary)]/50" />
     {{ value }}
   </span>
 
@@ -173,35 +204,43 @@ const currencyValue = computed(() =>
     {{ percentFormatted }}
   </span>
 
-  <!-- tags -->
+  <!-- tags : pastilles colorées par domaine, max 2 visibles + badge de débordement -->
   <span
     v-else-if="variant === 'tags'"
-    class="flex flex-wrap gap-1"
+    class="flex h-full items-center gap-1 overflow-hidden"
   >
     <span
       v-for="tag in tagsArray.slice(0, 2)"
       :key="tag"
-      class="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-500/12 dark:text-violet-300"
+      class="shrink-0 rounded-full px-2.5 py-px text-[11px] font-medium leading-[18px] ring-1 ring-inset"
+      :class="tagColor(tag)"
     >
       {{ tag }}
     </span>
     <span
       v-if="tagsArray.length > 2"
-      class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-700 dark:text-slate-400"
+      class="shrink-0 rounded-full bg-slate-100 px-2 py-px text-[11px] font-medium leading-[18px] text-slate-500 ring-1 ring-inset ring-slate-200/70 dark:bg-slate-700 dark:text-slate-400 dark:ring-slate-500/25"
     >
       +{{ tagsArray.length - 2 }}
     </span>
   </span>
 
-  <!-- bool -->
+  <!-- bool : badge circulaire avec icône checkmark ou croix -->
   <span
     v-else-if="variant === 'bool'"
     class="inline-flex items-center justify-center"
   >
     <span
-      class="h-2 w-2 rounded-full"
-      :class="boolValue ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-slate-300 dark:bg-slate-600'"
-    />
+      class="flex h-5 w-5 items-center justify-center rounded-full ring-1"
+      :class="boolValue
+        ? 'bg-emerald-50 text-emerald-600 ring-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-400 dark:ring-emerald-500/30'
+        : 'bg-slate-100 text-slate-400 ring-slate-200/80 dark:bg-slate-700 dark:text-slate-500 dark:ring-slate-500/30'"
+    >
+      <svg class="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path v-if="boolValue" d="M2 6.5l2.5 2.5 5.5-6" />
+        <path v-else d="M3 3l6 6M9 3l-6 6" />
+      </svg>
+    </span>
   </span>
 
   <!-- status -->

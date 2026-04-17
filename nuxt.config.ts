@@ -26,35 +26,6 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  app: {
-    head: {
-      script: [
-        {
-          children: `
-            (function () {
-              if (window.__VUE_DEVTOOLS_GLOBAL_HOOK__) {
-                window.__VUE_DEVTOOLS_GLOBAL_HOOK__.enabled = false
-              }
-
-              const originalWarn = console.warn.bind(console)
-              console.warn = function (...args) {
-                if (
-                  args.length > 0 &&
-                  typeof args[0] === 'string' &&
-                  args[0].includes('<Suspense> is an experimental feature and its API will likely change.')
-                ) {
-                  return
-                }
-                return originalWarn.apply(console, args)
-              }
-            })()
-          `,
-          tagPosition: 'head',
-        },
-      ],
-    },
-  },
-
   modules: ['@nuxtjs/i18n'],
 
   i18n: {

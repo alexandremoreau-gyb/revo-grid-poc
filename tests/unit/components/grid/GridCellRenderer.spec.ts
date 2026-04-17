@@ -1,11 +1,11 @@
-import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
+import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
 import en from '~/i18n/en'
 import fr from '~/i18n/fr'
 import type { GridColumnVariant } from '~/types/grid'
+import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
 
 // Cette suite couvre les variantes de rendu de cellule RevoGrid.
 // L'objectif est de verrouiller le formatage métier, pas le HTML exact.
@@ -139,9 +139,9 @@ describe('GridCellRenderer', () => {
     const inactive = mountRenderer('Inactive', 'status')
     const fallback = mountRenderer('Archived', 'status')
 
-    // Assert
-    expect(boolTrue.get('span span').classes()).toContain('bg-emerald-500')
-    expect(boolFalse.get('span span').classes()).toContain('bg-slate-300')
+    // Assert — le bool rend désormais un badge circulaire (ring + bg-emerald-50/bg-slate-100)
+    expect(boolTrue.get('span span').classes()).toContain('bg-emerald-50')
+    expect(boolFalse.get('span span').classes()).toContain('bg-slate-100')
     expect(active.find('.bg-emerald-100').exists()).toBe(true)
     expect(pending.find('.bg-amber-100').exists()).toBe(true)
     expect(inactive.find('.bg-rose-100').exists()).toBe(true)

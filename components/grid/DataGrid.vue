@@ -1,37 +1,67 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import VGrid, { VGridVueTemplate } from '@revolist/vue3-datagrid'
 
 import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
-import type { ColumnDef, RowData } from '~/types/grid'
+import type { ColumnDef, GridColumnVariant, GridFilterState, GridSortState, RowData } from '~/types/grid'
 
 interface Props {
   columns: ColumnDef[]
   rows: RowData[]
   loading?: boolean
   height?: number
+  selectable?: boolean
+  enableSorting?: boolean
+  enableColumnFilters?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   height: 420,
+  selectable: false,
+  enableSorting: true,
+  enableColumnFilters: false,
 })
+
+const emit = defineEmits<{
+  'sort-change': [state: GridSortState]
+  'filter-change': [state: GridFilterState]
+  'row-select': [rows: RowData[]]
+}>()
 
 const { t } = useI18n()
 
-const gridStyle = computed(() => ({
-  minHeight: `${props.height}px`,
-}))
+const panelStyle = computed(() => ({ maxHeight: '700px' }))
+const loadingStyle = computed(() => ({ minHeight: `${props.height}px` }))
+const gridStyle = computed(() => ({ height: `${props.height}px` }))
 
-const panelStyle = computed(() => ({
-  maxHeight: '700px',
-}))
+// Les templates doivent être créés pendant le setup() où getCurrentInstance() est valide.
+// VGridVueTemplate() appelle getCurrentInstance() en interne pour capturer le contexte Vue.
+// Son 2e argument est un objet de props STATIQUES mergé avec le cell-model de revo-grid
+// (qui fournit `model` et `prop` — d'où GridCellRenderer tire la valeur réelle).
+const ALL_VARIANTS: GridColumnVariant[] = [
+  'selection', 'id', 'symbol', 'price', 'large_number', 'trend', 'percent',
+  'tags', 'bool', 'status', 'currency', 'date', 'progress', 'email', 'company', 'actions', 'text',
+]
+const variantTemplates = Object.fromEntries(
+  ALL_VARIANTS.map(variant => [variant, VGridVueTemplate(GridCellRenderer, { variant })])
+) as Record<GridColumnVariant, ReturnType<typeof VGridVueTemplate>>
 
-const displayColumns = computed(() =>
-  props.columns.map(column => ({
-    ...column,
-    name: column.name ?? column.label ?? String(column.prop),
-  })),
+const revoColumns = computed(() =>
+  props.columns.map(col => ({
+    ...col,
+    name: col.name ?? col.label ?? String(col.prop),
+    ...(col.variant ? { cellTemplate: variantTemplates[col.variant] } : {}),
+  }))
 )
+
+function onSortingConfigChanged(event: CustomEvent<GridSortState>) {
+  emit('sort-change', event.detail)
+}
+
+function onFilterConfigChanged(event: CustomEvent<GridFilterState>) {
+  emit('filter-change', event.detail)
+}
 </script>
 
 <template>
@@ -42,47 +72,22 @@ const displayColumns = computed(() =>
     <div
       v-if="loading || !rows.length"
       class="flex flex-1 items-center justify-center bg-[linear-gradient(180deg,rgba(148,163,184,0.04),transparent)] text-sm text-[var(--color-text-muted)]"
-      :style="gridStyle"
+      :style="loadingStyle"
     >
       {{ loading ? t('common.loading') : t('common.noData') }}
     </div>
 
-    <div
-      v-else
-      class="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,rgba(148,163,184,0.03),transparent)]"
-      :style="gridStyle"
-    >
-      <table class="min-w-full border-collapse text-sm">
-        <thead class="sticky top-0 z-10 bg-[var(--color-surface)]/95 backdrop-blur">
-          <tr class="border-b border-[var(--color-border)]">
-            <th
-              v-for="column in displayColumns"
-              :key="column.prop"
-              class="whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]"
-            >
-              {{ column.name }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(row, rowIndex) in rows"
-            :key="String(row.id ?? rowIndex)"
-            class="border-b border-[var(--color-border)] odd:bg-[rgba(148,163,184,0.03)] hover:bg-[rgba(59,130,246,0.05)] last:border-b-0"
-          >
-            <td
-              v-for="column in displayColumns"
-              :key="column.prop"
-              class="whitespace-nowrap px-4 py-3 align-middle text-[var(--color-text)]"
-            >
-              <GridCellRenderer
-                :value="row[column.prop]"
-                :variant="column.variant"
-              />
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <ClientOnly v-else>
+      <VGrid
+        :columns="revoColumns"
+        :source="rows"
+        :filter="enableColumnFilters"
+        :readonly="true"
+        :style="gridStyle"
+        theme="compact"
+        @sortingconfigchanged="onSortingConfigChanged"
+        @filterconfigchanged="onFilterConfigChanged"
+      />
+    </ClientOnly>
   </div>
 </template>

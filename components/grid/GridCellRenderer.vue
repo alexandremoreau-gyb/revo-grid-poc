@@ -48,6 +48,25 @@ function tagColor(tag: string): string {
   return TAG_COLOR_MAP[tag] ?? TAG_DEFAULT_COLOR
 }
 
+// Couleurs des statuts dossier OTC Flow
+const DOSSIER_STATUS_STYLES: Record<string, string> = {
+  'Déposé':     'bg-[#E8F5EE] text-[#117A38] ring-[#117A38]/20',
+  'En cours':   'bg-blue-50 text-blue-700 ring-blue-200/70',
+  'En attente': 'bg-amber-50 text-amber-700 ring-amber-200/70',
+  'Incomplet':  'bg-orange-50 text-orange-700 ring-orange-200/70',
+  'Refusé':     'bg-red-50 text-red-700 ring-red-200/70',
+  'Annulé':     'bg-slate-100 text-slate-500 ring-slate-200/70',
+}
+const DOSSIER_STATUS_DEFAULT = 'bg-slate-100 text-slate-500 ring-slate-200/70'
+
+// Couleurs des niveaux de risque
+const RISK_STYLES: Record<string, string> = {
+  'OK':        'bg-[#E8F5EE] text-[#117A38] ring-[#117A38]/20',
+  'Attention': 'bg-amber-50 text-amber-700 ring-amber-200/70',
+  'Critique':  'bg-red-50 text-red-700 ring-red-200/70',
+}
+const RISK_DEFAULT = 'bg-slate-100 text-slate-500 ring-slate-200/70'
+
 const value = computed(() => String(rawValue.value ?? ''))
 const numericValue = computed(() => Number(rawValue.value ?? 0))
 const dateLocale = 'fr-FR'
@@ -310,6 +329,24 @@ const currencyValue = computed(() =>
   >
     Edit
   </button>
+
+  <!-- dossier-status : badge OTC Flow avec couleur sémantique -->
+  <span
+    v-else-if="variant === 'dossier-status'"
+    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset"
+    :class="DOSSIER_STATUS_STYLES[value] ?? DOSSIER_STATUS_DEFAULT"
+  >
+    {{ value }}
+  </span>
+
+  <!-- risk : badge compact avec couleur sémantique -->
+  <span
+    v-else-if="variant === 'risk'"
+    class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset"
+    :class="RISK_STYLES[value] ?? RISK_DEFAULT"
+  >
+    {{ value }}
+  </span>
 
   <!-- default -->
   <span v-else class="truncate text-xs text-[var(--color-text)]">

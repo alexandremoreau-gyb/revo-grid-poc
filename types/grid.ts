@@ -15,7 +15,9 @@ export type GridColumnVariant =
   | 'status'
   | 'progress'
   | 'actions'
-  // nouveaux variants crypto
+  | 'dossier-status'
+  | 'risk'
+  // variants crypto (conservés pour /demo)
   | 'symbol'
   | 'price'
   | 'large_number'

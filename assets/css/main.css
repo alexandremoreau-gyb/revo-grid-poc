@@ -1,34 +1,35 @@
 @import "tailwindcss";
 
-/* Force dark: à répondre à la class .dark (pas @media prefers-color-scheme) */
+/* Dark mode via classe .dark */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ── Palette OTC Flow ─────────────────────────────────────────────────── */
 :root {
-  --color-primary: #155eef;
-  --color-primary-hover: #004ee6;
-  --color-success: #0f9f6f;
-  --color-warning: #c8811a;
-  --color-danger: #cf4d4d;
-  --color-bg: #f0f2f7;
-  --color-bg-strong: #e6e9f0;
-  /* surface = bg : une seule couleur de fond dans l'app */
-  --color-surface: var(--color-bg);
-  --color-surface-strong: var(--color-bg);
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-text: #111827;
-  --color-text-muted: #4b5563;
-  --color-text-soft: #9ca3af;
+  --color-primary: #117A38;
+  --color-primary-hover: #0e6530;
+  --color-secondary: #1E9B48;
+  --color-success: #117A38;
+  --color-warning: #F59E0B;
+  --color-danger: #ef4444;
+  --color-bg: #FEF9EE;
+  --color-bg-strong: #f0e8d8;
+  --color-surface: #FFFFFF;
+  --color-surface-strong: #FAFAF8;
+  --color-border: #E0E0DD;
+  --color-text: #1A1A2E;
+  --color-text-muted: #666666;
+  --color-text-soft: #888888;
 }
 
 .dark {
-  --color-bg: #0f1117;
-  --color-bg-strong: #1a2032;
-  --color-surface: var(--color-bg);
-  --color-surface-strong: var(--color-bg);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-text: #f1f5f9;
-  --color-text-muted: #94a3b8;
-  --color-text-soft: #64748b;
+  --color-bg: #111810;
+  --color-bg-strong: #1a2415;
+  --color-surface: #1a2415;
+  --color-surface-strong: #213019;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-text: #f1f5f1;
+  --color-text-muted: #94a38a;
+  --color-text-soft: #648060;
 }
 
 html {
@@ -44,7 +45,7 @@ body {
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: "Inter", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-family: "Manrope", "Segoe UI", "Helvetica Neue", sans-serif;
 }
 
 a,
@@ -55,7 +56,6 @@ select {
     border-color 160ms ease,
     background-color 160ms ease,
     color 160ms ease,
-    transform 160ms ease,
     box-shadow 160ms ease;
 }
 
@@ -65,11 +65,8 @@ button:disabled {
 }
 
 ::selection {
-  background: rgba(21, 94, 239, 0.15);
+  background: rgba(17, 122, 56, 0.15);
 }
-
-/* Layout full-bleed : pas de card, pas de bordure autour des sections.
-   Les sections se séparent uniquement par border-b / border-t inline. */
 
 .eyebrow {
   color: var(--color-text-soft);
@@ -79,25 +76,22 @@ button:disabled {
   text-transform: uppercase;
 }
 
-/* ─── RevoGrid theming ─────────────────────────────────────────────────────
-   Les vrais noms de variables sont --revo-grid-* (pas --rg-*).
-   On override le thème compact (light) et darkCompact (dark).
-   ─────────────────────────────────────────────────────────────────────────── */
+/* ── RevoGrid theming OTC Flow ────────────────────────────────────────── */
 
 revo-grid[theme="compact"] {
   --revo-grid-primary: var(--color-primary);
   --revo-grid-background: transparent;
   --revo-grid-text: var(--color-text);
-  --revo-grid-header-bg: var(--color-bg);
+  --revo-grid-header-bg: var(--color-bg-strong);
   --revo-grid-header-color: var(--color-text-muted);
-  --revo-grid-header-border: rgba(0, 0, 0, 0.07);
-  --revo-grid-cell-border: rgba(0, 0, 0, 0.06);
-  --revo-grid-row-hover: rgba(21, 94, 239, 0.04);
-  --revo-grid-focused-bg: rgba(21, 94, 239, 0.06);
+  --revo-grid-header-border: var(--color-border);
+  --revo-grid-cell-border: var(--color-border);
+  --revo-grid-row-hover: rgba(17, 122, 56, 0.04);
+  --revo-grid-focused-bg: rgba(17, 122, 56, 0.07);
   --revo-grid-filter-panel-bg: #ffffff;
-  --revo-grid-filter-panel-border: rgba(0, 0, 0, 0.08);
-  --revo-grid-filter-panel-input-bg: #f3f4f6;
-  --revo-grid-filter-panel-divider: rgba(0, 0, 0, 0.06);
+  --revo-grid-filter-panel-border: var(--color-border);
+  --revo-grid-filter-panel-input-bg: var(--color-bg);
+  --revo-grid-filter-panel-divider: var(--color-border);
 }
 
 revo-grid[theme="darkCompact"] {
@@ -105,33 +99,35 @@ revo-grid[theme="darkCompact"] {
   --revo-grid-background: transparent;
   --revo-grid-text: var(--color-text);
   --revo-grid-foreground: var(--color-text);
-  --revo-grid-header-bg: var(--color-bg);
+  --revo-grid-header-bg: var(--color-bg-strong);
   --revo-grid-header-color: var(--color-text-muted);
-  --revo-grid-header-border: rgba(255, 255, 255, 0.06);
-  --revo-grid-cell-border: rgba(255, 255, 255, 0.05);
-  --revo-grid-row-hover: rgba(255, 255, 255, 0.04);
-  --revo-grid-focused-bg: rgba(21, 94, 239, 0.12);
+  --revo-grid-header-border: var(--color-border);
+  --revo-grid-cell-border: var(--color-border);
+  --revo-grid-row-hover: rgba(17, 122, 56, 0.08);
+  --revo-grid-focused-bg: rgba(17, 122, 56, 0.12);
   --revo-grid-filter-panel-bg: var(--color-surface);
-  --revo-grid-filter-panel-border: rgba(255, 255, 255, 0.07);
+  --revo-grid-filter-panel-border: var(--color-border);
   --revo-grid-filter-panel-input-bg: rgba(255, 255, 255, 0.05);
-  --revo-grid-filter-panel-divider: rgba(255, 255, 255, 0.05);
+  --revo-grid-filter-panel-divider: var(--color-border);
 }
 
-/* Hauteur de ligne légèrement plus généreuse + uppercase désactivé pour les headers */
+/* Header : no uppercase, police cohérente avec le design system */
 revo-grid[theme="compact"] revogr-header,
 revo-grid[theme="darkCompact"] revogr-header {
   text-transform: none;
-  font-size: 12px;
-  letter-spacing: 0.03em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
 }
 
+/* Hauteur de ligne dense (34px) */
 revo-grid[theme="compact"] revogr-header .header-rgRow,
 revo-grid[theme="darkCompact"] revogr-header .header-rgRow {
-  height: 40px;
-  line-height: 40px;
+  height: 34px;
+  line-height: 34px;
 }
 
 revo-grid[theme="compact"] revogr-data .rgRow,
 revo-grid[theme="darkCompact"] revogr-data .rgRow {
-  line-height: 40px;
+  line-height: 34px;
 }

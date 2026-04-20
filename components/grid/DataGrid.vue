@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { EditorCtr } from '@revolist/revogrid'
 import VGrid, { VGridVueTemplate } from '@revolist/vue3-datagrid'
-
+import DateSortHeader from '~/components/grid/DateSortHeader.vue'
 import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
 import type { ColumnDef, GridColumnVariant, GridFilterState, GridSortState, RowData } from '~/types/grid'
 
@@ -71,6 +71,8 @@ const variantTemplates = Object.fromEntries(
   ALL_VARIANTS.map(variant => [variant, VGridVueTemplate(GridCellRenderer, { variant })])
 ) as Record<GridColumnVariant, ReturnType<typeof VGridVueTemplate>>
 
+const dateHeaderTemplate = VGridVueTemplate(DateSortHeader, {})
+
 const revoColumns = computed(() =>
   props.columns.map((col) => {
     const isEditable = col.editable === true
@@ -81,6 +83,7 @@ const revoColumns = computed(() =>
       ...(col.editable !== undefined ? { readonly: !col.editable } : {}),
       ...(isEditable ? { editor: col.editor } : {}),
       ...(col.variant ? { cellTemplate: variantTemplates[col.variant] } : {}),
+      ...(col.prop === 'date' ? { columnTemplate: dateHeaderTemplate } : {}),
     }
   })
 )

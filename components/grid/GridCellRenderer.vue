@@ -48,24 +48,24 @@ function tagColor(tag: string): string {
   return TAG_COLOR_MAP[tag] ?? TAG_DEFAULT_COLOR
 }
 
-// Couleurs des statuts dossier OTC Flow
+// Couleurs des statuts dossier OTC Flow — style Notion (solide, fort contraste)
 const DOSSIER_STATUS_STYLES: Record<string, string> = {
-  'Déposé':     'bg-[#E8F5EE] text-[#117A38] ring-[#117A38]/20',
-  'En cours':   'bg-blue-50 text-blue-700 ring-blue-200/70',
-  'En attente': 'bg-amber-50 text-amber-700 ring-amber-200/70',
-  'Incomplet':  'bg-orange-50 text-orange-700 ring-orange-200/70',
-  'Refusé':     'bg-red-50 text-red-700 ring-red-200/70',
-  'Annulé':     'bg-slate-100 text-slate-500 ring-slate-200/70',
+  'Déposé':     'bg-emerald-600 text-white',
+  'En cours':   'bg-blue-600 text-white',
+  'En attente': 'bg-amber-500 text-white',
+  'Incomplet':  'bg-orange-500 text-white',
+  'Refusé':     'bg-red-600 text-white',
+  'Annulé':     'bg-slate-400 text-white',
 }
-const DOSSIER_STATUS_DEFAULT = 'bg-slate-100 text-slate-500 ring-slate-200/70'
+const DOSSIER_STATUS_DEFAULT = 'bg-slate-400 text-white'
 
-// Couleurs des niveaux de risque
+// Couleurs des niveaux de risque — style Notion
 const RISK_STYLES: Record<string, string> = {
-  'OK':        'bg-[#E8F5EE] text-[#117A38] ring-[#117A38]/20',
-  'Attention': 'bg-amber-50 text-amber-700 ring-amber-200/70',
-  'Critique':  'bg-red-50 text-red-700 ring-red-200/70',
+  'OK':        'bg-emerald-600 text-white',
+  'Attention': 'bg-amber-500 text-white',
+  'Critique':  'bg-red-600 text-white',
 }
-const RISK_DEFAULT = 'bg-slate-100 text-slate-500 ring-slate-200/70'
+const RISK_DEFAULT = 'bg-slate-400 text-white'
 
 const value = computed(() => String(rawValue.value ?? ''))
 const numericValue = computed(() => Number(rawValue.value ?? 0))
@@ -330,22 +330,24 @@ const currencyValue = computed(() =>
     Edit
   </button>
 
-  <!-- dossier-status : badge OTC Flow avec couleur sémantique -->
-  <span
-    v-else-if="variant === 'dossier-status'"
-    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset"
-    :class="DOSSIER_STATUS_STYLES[value] ?? DOSSIER_STATUS_DEFAULT"
-  >
-    {{ value }}
+  <!-- dossier-status : badge OTC Flow style Notion — compact, fort contraste -->
+  <span v-else-if="variant === 'dossier-status'" class="flex h-full items-center">
+    <span
+      class="inline-flex w-fit items-center rounded-sm px-1.5 py-px text-[11px] font-medium leading-4"
+      :class="DOSSIER_STATUS_STYLES[value] ?? DOSSIER_STATUS_DEFAULT"
+    >
+      {{ value }}
+    </span>
   </span>
 
-  <!-- risk : badge compact avec couleur sémantique -->
-  <span
-    v-else-if="variant === 'risk'"
-    class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset"
-    :class="RISK_STYLES[value] ?? RISK_DEFAULT"
-  >
-    {{ value }}
+  <!-- risk : badge compact style Notion -->
+  <span v-else-if="variant === 'risk'" class="flex h-full items-center">
+    <span
+      class="inline-flex w-fit items-center rounded-sm px-1.5 py-px text-[11px] font-medium leading-4"
+      :class="RISK_STYLES[value] ?? RISK_DEFAULT"
+    >
+      {{ value }}
+    </span>
   </span>
 
   <!-- default -->

@@ -54,9 +54,10 @@ function isActive(href: string) {
   <aside
     class="fixed left-0 top-0 z-40 flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-bg-strong)] transition-all duration-200"
     :class="[
-      collapsed ? 'w-[56px]' : 'w-[220px]',
+      collapsed ? 'w-[56px] cursor-pointer' : 'w-[220px]',
       mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
     ]"
+    @click="collapsed && (collapsed = false)"
   >
     <!-- brand -->
     <div
@@ -80,7 +81,7 @@ function isActive(href: string) {
         v-if="!collapsed"
         class="hidden shrink-0 rounded-lg p-1 text-[var(--color-text-soft)] transition hover:bg-[var(--color-bg-strong)] hover:text-[var(--color-text)] lg:flex"
         type="button"
-        @click="collapsed = !collapsed"
+        @click.stop="collapsed = !collapsed"
       >
         <svg class="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" d="M9 2L4 7l5 5" />

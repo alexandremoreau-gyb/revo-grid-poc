@@ -17,12 +17,12 @@ export const DOSSIER_STATUTS = [
 
 export const DOSSIER_RISQUES = ['OK', 'Attention', 'Critique'] as const
 
-const FICHES = [
+export const FICHES = [
   'BAR_TH_123', 'BAR_TH_171', 'BAT_EQ_127', 'BAT_TH_122',
   'BAT_EN_107', 'BAR_TH_143', 'BAR_SE_104', 'BAT_TH_116',
 ] as const
 
-const CLIENTS = [
+export const CLIENTS = [
   'COPRIM', 'ENGIE HOME SERVICES', 'REXEL', 'POINT P', 'SCHNEIDER',
   'SOMFY', 'ATLANTIC', 'DAIKIN', 'VIESSMANN', 'SAUNIER DUVAL',
   'THERMOR', 'DE DIETRICH', 'BOSCH', 'VAILLANT', 'CHAFFOTEAUX',
@@ -36,7 +36,7 @@ const RAISONS = [
   'BOSCH THERMOTECHNIK FR', 'VAILLANT GROUP FRANCE', 'CHAFFOTEAUX ET MAURY',
 ] as const
 
-const TF_CODES = ['TOP', 'TF1', 'TF2', 'TF3', 'TF4'] as const
+export const TF_CODES = ['TOP', 'TF1', 'TF2', 'TF3', 'TF4'] as const
 
 function pick<T>(arr: readonly T[], i: number): T {
   return arr[i % arr.length]!
@@ -99,6 +99,7 @@ export function createDossierRows(count = 200): RowData[] {
 
     return {
       reference,
+      fiche,
       client:       pick(CLIENTS, i),
       raisonSociale: pick(RAISONS, i),
       date:         dateStr,

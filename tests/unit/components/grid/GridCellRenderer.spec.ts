@@ -1,9 +1,9 @@
+import fr from '~/i18n/fr'
+import en from '~/i18n/en'
 import { createI18n } from 'vue-i18n'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import en from '~/i18n/en'
-import fr from '~/i18n/fr'
 import type { GridColumnVariant } from '~/types/grid'
 import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
 
@@ -146,6 +146,34 @@ describe('GridCellRenderer', () => {
     expect(pending.find('.bg-amber-100').exists()).toBe(true)
     expect(inactive.find('.bg-rose-100').exists()).toBe(true)
     expect(fallback.find('.bg-slate-100').exists()).toBe(true)
+  })
+
+  it('rend les badges dossier-status connus et de repli', () => {
+    // Arrange / Act
+    const known = mountRenderer('Déposé', 'dossier-status')
+    const fallback = mountRenderer('Archivé', 'dossier-status')
+
+    // Assert
+    expect(known.text()).toBe('Déposé')
+    expect(known.get('span span').classes()).toContain('bg-emerald-600')
+    expect(known.get('span span').classes()).toContain('text-white')
+    expect(fallback.text()).toBe('Archivé')
+    expect(fallback.get('span span').classes()).toContain('bg-slate-400')
+    expect(fallback.get('span span').classes()).toContain('text-white')
+  })
+
+  it('rend les badges risk connus et de repli', () => {
+    // Arrange / Act
+    const known = mountRenderer('OK', 'risk')
+    const fallback = mountRenderer('Inconnu', 'risk')
+
+    // Assert
+    expect(known.text()).toBe('OK')
+    expect(known.get('span span').classes()).toContain('bg-emerald-600')
+    expect(known.get('span span').classes()).toContain('text-white')
+    expect(fallback.text()).toBe('Inconnu')
+    expect(fallback.get('span span').classes()).toContain('bg-slate-400')
+    expect(fallback.get('span span').classes()).toContain('text-white')
   })
 
   it('rend les variantes currency, date, progress, email, company, actions et fallback', () => {

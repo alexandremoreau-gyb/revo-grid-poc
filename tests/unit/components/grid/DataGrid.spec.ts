@@ -1,11 +1,10 @@
+import fr from '~/i18n/fr'
+import en from '~/i18n/en'
 import { createI18n } from 'vue-i18n'
 import { mount } from '@vue/test-utils'
 import VGrid from '@revolist/vue3-datagrid'
 import { describe, expect, it } from 'vitest'
-
 import DataGrid from '~/components/grid/DataGrid.vue'
-import en from '~/i18n/en'
-import fr from '~/i18n/fr'
 import type { ColumnDef, RowData } from '~/types/grid'
 
 const i18n = createI18n({
@@ -45,6 +44,8 @@ const baseRows: RowData[] = [
 // ClientOnly est un composant Nuxt qui ne rend rien côté serveur/test.
 // On le remplace par un stub transparent qui passe simplement son slot.
 const ClientOnlyStub = { template: '<slot />' }
+
+const dateEditor = function DateEditor() {}
 
 function mountGrid(props: Record<string, unknown> = {}) {
   return mount(DataGrid, {
@@ -127,6 +128,31 @@ describe('DataGrid', () => {
     expect(source).toHaveLength(1)
   })
 
+  it('relaie afteredit vers cell-edit avec la charge utile attendue', () => {
+    // Arrange
+    const wrapper = mountGrid()
+    const grid = wrapper.findComponent(VGrid)
+    const payload = {
+      detail: {
+        rowIndex: 1,
+        prop: 'price',
+        val: 43000,
+      },
+    }
+
+    // Act
+    grid.vm.$emit('afteredit', payload)
+
+    // Assert
+    expect(wrapper.emitted('cell-edit')?.[0]).toEqual([
+      {
+        rowIndex: 1,
+        prop: 'price',
+        val: 43000,
+      },
+    ])
+  })
+
   it('relaie les events de tri et de filtre vers les emits métier', () => {
     // Arrange
     const wrapper = mountGrid({
@@ -143,5 +169,66 @@ describe('DataGrid', () => {
     // Assert
     expect(wrapper.emitted('sort-change')?.[0]).toEqual([sortState])
     expect(wrapper.emitted('filter-change')?.[0]).toEqual([filterState])
+  })
+
+  it('utilise une hauteur en string et supprime le cadre quand framed vaut false', () => {
+    // Arrange / Act
+    const wrapper = mountGrid({
+      loading: true,
+      framed: false,
+      height: '60vh',
+    })
+
+    // Assert
+    const styledDivs = wrapper.findAll('div[style]')
+
+    expect(wrapper.classes()).not.toContain('rounded-2xl')
+    expect(wrapper.classes()).not.toContain('border')
+    expect(styledDivs[0]?.attributes('style')).toContain('height: 60vh')
+    expect(styledDivs[1]?.attributes('style')).toContain('min-height: 320px')
+  })
+
+  it('passe les éditeurs et mappe les colonnes éditables et date', () => {
+    // Arrange
+    const editors = {
+      date: dateEditor,
+    }
+    const wrapper = mountGrid({
+      editable: true,
+      editors,
+      height: '60vh',
+      columns: [
+        {
+          prop: 'date',
+          name: 'Date',
+          variant: 'date',
+          editable: true,
+          editor: dateEditor as unknown as ColumnDef['editor'],
+        },
+        {
+          prop: 'status',
+          name: 'Status',
+          editable: false,
+        },
+      ] as ColumnDef[],
+    })
+
+    // Act
+    const grid = wrapper.findComponent(VGrid)
+
+    // Assert
+    expect(grid.exists()).toBe(true)
+    expect((grid.vm.$attrs.editors ?? grid.vm.$props.editors)).toStrictEqual(editors)
+
+    const cols = (grid.vm.$attrs.columns ?? grid.vm.$props.columns) as any[]
+    const dateCol = cols.find((c: any) => c.prop === 'date')
+    const statusCol = cols.find((c: any) => c.prop === 'status')
+
+    expect(grid.vm.$attrs.readonly ?? grid.vm.$props.readonly).toBe(false)
+    expect(dateCol?.readonly).toBe(false)
+    expect(dateCol?.editor).toBe(dateEditor)
+    expect(typeof dateCol?.cellTemplate).toBe('function')
+    expect(typeof dateCol?.columnTemplate).toBe('function')
+    expect(statusCol?.readonly).toBe(true)
   })
 })

@@ -82,13 +82,13 @@ revo-grid[theme="compact"] {
   --revo-grid-primary: var(--color-primary);
   --revo-grid-background: transparent;
   --revo-grid-text: var(--color-text);
-  --revo-grid-header-bg: var(--color-bg-strong);
+  --revo-grid-header-bg: var(--color-surface-strong);
   --revo-grid-header-color: var(--color-text-muted);
   --revo-grid-header-border: var(--color-border);
   --revo-grid-cell-border: var(--color-border);
-  --revo-grid-row-hover: rgba(17, 122, 56, 0.04);
-  --revo-grid-focused-bg: rgba(17, 122, 56, 0.07);
-  --revo-grid-filter-panel-bg: #ffffff;
+  --revo-grid-row-hover: rgba(17, 122, 56, 0.03);
+  --revo-grid-focused-bg: rgba(17, 122, 56, 0.06);
+  --revo-grid-filter-panel-bg: var(--color-surface);
   --revo-grid-filter-panel-border: var(--color-border);
   --revo-grid-filter-panel-input-bg: var(--color-bg);
   --revo-grid-filter-panel-divider: var(--color-border);
@@ -123,11 +123,11 @@ revo-grid[theme="darkCompact"] revogr-header {
 /* Hauteur de ligne dense (34px) */
 revo-grid[theme="compact"] revogr-header .header-rgRow,
 revo-grid[theme="darkCompact"] revogr-header .header-rgRow {
-  height: 34px;
-  line-height: 34px;
+  height: 36px;
+  line-height: 36px;
 }
 
 revo-grid[theme="compact"] revogr-data .rgRow,
 revo-grid[theme="darkCompact"] revogr-data .rgRow {
-  line-height: 34px;
+  line-height: 36px;
 }

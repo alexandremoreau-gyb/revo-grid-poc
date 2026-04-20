@@ -1,5 +1,10 @@
 import type { ColumnDef, RowData } from '~/types/grid'
-import { SelectEditor } from '~/components/grid/SelectEditor'
+import {
+  createDateEditor,
+  createNumberEditor,
+  createStatusEditor,
+  createTextEditor,
+} from '~/components/grid/inlineEditors'
 
 export const DOSSIER_STATUTS = [
   'Déposé',
@@ -43,23 +48,26 @@ function formatDate(year: number, month: number, day: number): string {
 
 // Colonnes de la grille dossiers
 export const dossierColumns: ColumnDef[] = [
-  { prop: 'reference',    name: 'RÉFÉRENCE',      size: 210, editable: false },
-  { prop: 'client',       name: 'CLIENT',         size: 160, editable: true },
-  { prop: 'raisonSociale',name: 'RAISON SOCIALE', size: 200, editable: true, variant: 'company' },
-  { prop: 'date',         name: 'DATE',           size: 115, editable: true, variant: 'date' },
-  { prop: 'lp',           name: 'LP',             size: 80,  editable: true },
-  { prop: 'tf',           name: 'TF',             size: 80,  editable: true },
-  { prop: 'cumac',        name: 'CUMAC (€)',       size: 130, editable: false, variant: 'currency' },
-  { prop: 'montantTTC',   name: 'MONTANT TTC (€)', size: 140, editable: true, variant: 'currency' },
-  { prop: 'volumeMwh',    name: 'VOLUME MWh',     size: 120, editable: false },
-  { prop: 'statut',       name: 'STATUT',         size: 130, editable: true, variant: 'dossier-status', editor: 'select-statut' },
-  { prop: 'risque',       name: 'RISQUE',         size: 100, editable: false, variant: 'risk' },
+  { prop: 'reference',     name: 'RÉFÉRENCE',       size: 210, editable: false },
+  { prop: 'client',        name: 'CLIENT',          size: 160, editable: true, type: 'string', editor: 'dossier-text' },
+  { prop: 'raisonSociale', name: 'RAISON SOCIALE',  size: 200, editable: true, variant: 'company', type: 'string', editor: 'dossier-text' },
+  { prop: 'date',          name: 'DATE',            size: 115, editable: true, variant: 'date', type: 'date', editor: 'dossier-date' },
+  { prop: 'lp',            name: 'LP',              size: 80,  editable: true, type: 'string', editor: 'dossier-text' },
+  { prop: 'tf',            name: 'TF',              size: 80,  editable: true, type: 'string', editor: 'dossier-text' },
+  { prop: 'cumac',         name: 'CUMAC (€)',       size: 130, editable: false, variant: 'currency' },
+  { prop: 'montantTTC',    name: 'MONTANT TTC (€)', size: 140, editable: true, variant: 'currency', type: 'number', editor: 'dossier-number' },
+  { prop: 'volumeMwh',     name: 'VOLUME MWh',      size: 120, editable: false, type: 'number' },
+  { prop: 'statut',        name: 'STATUT',          size: 130, editable: true, variant: 'dossier-status', editor: 'select-statut' },
+  { prop: 'risque',        name: 'RISQUE',          size: 100, editable: false, variant: 'risk' },
 ]
 
 // Éditeurs custom à passer à DataGrid — doit rester en dehors du composant Vue
 // pour éviter la recréation à chaque render
 export const dossierEditors = {
-  'select-statut': new SelectEditor([...DOSSIER_STATUTS]),
+  'dossier-text': createTextEditor(),
+  'dossier-date': createDateEditor(),
+  'dossier-number': createNumberEditor(),
+  'select-statut': createStatusEditor([...DOSSIER_STATUTS]),
 }
 
 export function createDossierRows(count = 200): RowData[] {

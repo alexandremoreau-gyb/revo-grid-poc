@@ -3,6 +3,29 @@
 Le composant [`components/grid/DataGrid.vue`](../components/grid/DataGrid.vue) sert de
 wrapper autour de `@revolist/vue3-datagrid` pour afficher les données avec un rendu plus riche et plus extensible.
 
+## Maquettes de référence
+
+Les images sont à fournir dans `docs/assets/table/`.
+
+### Fonctionnel
+
+Les 3 premières images servent de référence pour le comportement du tableau:
+
+- édition inline des cellules
+- logique de grille type Excel
+- retours visuels de validation / erreur
+- interactions métier autour de la mise à jour des dossiers
+
+### UI / Style
+
+Toutes les images suivantes servent de référence visuelle:
+
+- hiérarchie typographique
+- palette de couleurs
+- densité du tableau
+- badges, statuts, états et bordures
+- style général du dashboard
+
 ## Comment ça fonctionne
 
 ### 1. Les données arrivent dans `DataGrid.vue`

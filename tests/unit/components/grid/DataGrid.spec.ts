@@ -77,7 +77,7 @@ describe('DataGrid', () => {
     expect(emptyWrapper.find('table').exists()).toBe(false)
   })
 
-  it('plafonne le panneau a 700px et conserve la hauteur minimale interne', () => {
+  it('utilise une hauteur explicite et conserve la hauteur minimale interne', () => {
     // Arrange / Act
     const wrapper = mountGrid({
       loading: true,
@@ -87,7 +87,7 @@ describe('DataGrid', () => {
     // Assert
     const styledDivs = wrapper.findAll('div[style]')
 
-    expect(styledDivs[0]?.attributes('style')).toContain('max-height: 700px')
+    expect(styledDivs[0]?.attributes('style')).toContain('height: 280px')
     expect(styledDivs[1]?.attributes('style')).toContain('min-height: 280px')
   })
 

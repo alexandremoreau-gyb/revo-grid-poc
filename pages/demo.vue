@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import DataGrid from '~/components/grid/DataGrid.vue'
 import GridPagination from '~/components/grid/GridPagination.vue'
@@ -19,7 +19,6 @@ const selectedCategory = ref('')
 
 // --- grid state ---
 const loading = ref(false)
-const isGridMounted = ref(false)
 const selectedRows = ref<RowData[]>([])
 const sortState = ref<GridSortState | null>(null)
 const filterState = ref<GridFilterState | null>(null)
@@ -76,10 +75,6 @@ watch([search, showTrendingOnly, showWatchlistOnly, selectedCategory, pageSize],
   selectedRows.value = []
 })
 
-onMounted(() => {
-  isGridMounted.value = true
-})
-
 function handleSelection(rows: RowData[]) {
   selectedRows.value = rows
 }
@@ -94,7 +89,7 @@ function handleFilter(f: GridFilterState) {
 </script>
 
 <template>
-  <div>
+  <div class="flex min-h-0 flex-1 flex-col">
 
     <!-- header -->
     <div class="flex flex-col gap-3 border-b border-[var(--color-border)] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -185,7 +180,7 @@ function handleFilter(f: GridFilterState) {
     </div>
 
     <!-- grid pleine largeur -->
-    <div v-if="isGridMounted">
+    <div class="flex-1 min-h-0 overflow-hidden">
       <DataGrid
         :columns="cryptoColumns"
         :rows="pagedRows"
@@ -193,6 +188,7 @@ function handleFilter(f: GridFilterState) {
         :selectable="true"
         :enable-column-filters="true"
         :enable-sorting="true"
+        height="100%"
         @row-select="handleSelection"
         @sort-change="handleSort"
         @filter-change="handleFilter"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useSidebar } from '~/composables/useSidebar'
 
 const mobileOpen = ref(false)
@@ -9,16 +9,25 @@ const navItems = [
   {
     href: '/',
     label: 'Suivi des dossiers',
-    active: true,
     icon: `<rect x="2" y="3" width="12" height="2" rx="1"/><rect x="2" y="7" width="12" height="2" rx="1"/><rect x="2" y="11" width="8" height="2" rx="1"/>`,
   },
   {
     href: '/demo',
     label: 'Démo crypto (readonly)',
-    active: false,
     icon: `<circle cx="8" cy="8" r="5.5"/><path stroke-linecap="round" d="M6 8h4M8 6v4"/>`,
   },
 ]
+
+const route = useRoute()
+
+const normalizedPath = computed(() => route.path.replace(/\/$/, '') || '/')
+
+function isActive(href: string) {
+  if (href === '/')
+    return normalizedPath.value === '/'
+
+  return normalizedPath.value === href || normalizedPath.value.startsWith(`${href}/`)
+}
 </script>
 
 <template>
@@ -43,7 +52,7 @@ const navItems = [
 
   <!-- sidebar -->
   <aside
-    class="fixed left-0 top-0 z-40 flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-200"
+    class="fixed left-0 top-0 z-40 flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-bg-strong)] transition-all duration-200"
     :class="[
       collapsed ? 'w-[56px]' : 'w-[220px]',
       mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
@@ -86,21 +95,22 @@ const navItems = [
 
     <!-- nav -->
     <nav class="flex-1 overflow-y-auto px-2 py-1">
-      <a
+      <NuxtLink
         v-for="item in navItems"
         :key="item.href"
-        :href="item.href"
+        :to="item.href"
         class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition"
         :class="[
           collapsed ? 'justify-center px-0' : '',
-          item.active
+          isActive(item.href)
             ? 'bg-[var(--color-primary)]/8 text-[var(--color-primary)]'
             : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-strong)] hover:text-[var(--color-text)]',
         ]"
+        @click="mobileOpen = false"
       >
         <svg
           class="h-4 w-4 shrink-0"
-          :class="item.active ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-soft)]'"
+          :class="isActive(item.href) ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-soft)]'"
           viewBox="0 0 16 16"
           fill="none"
           stroke="currentColor"
@@ -108,7 +118,7 @@ const navItems = [
           v-html="item.icon"
         />
         <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
-      </a>
+      </NuxtLink>
     </nav>
 
     <!-- bas sidebar : bouton collapse -->

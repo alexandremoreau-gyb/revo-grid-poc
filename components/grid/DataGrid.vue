@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import type { EditorCtr } from '@revolist/revogrid'
 import VGrid, { VGridVueTemplate } from '@revolist/vue3-datagrid'
-import { useConfirmModal } from '~/composables/useConfirmModal'
 import DateSortHeader from '~/components/grid/DateSortHeader.vue'
 import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
 import GridHeaderRenderer from '~/components/grid/GridHeaderRenderer.vue'
+import { useConfirmModal } from '~/composables/useConfirmModal'
 import type { ColumnDef, GridColumnVariant, GridFilterState, GridSortState, RowData } from '~/types/grid'
 
 interface CellEditPayload {
@@ -47,7 +47,6 @@ const emit = defineEmits<{
 }>()
 
 const { confirm } = useConfirmModal()
-const gridKey = ref(0)
 
 const { t } = useI18n()
 
@@ -121,13 +120,12 @@ function onFilterConfigChanged(event: CustomEvent<GridFilterState>) {
   emit('filter-change', event.detail)
 }
 
-async function onAfterEdit(event: any) {
+async function onBeforeEdit(event: any) {
   const { val, prop, rowIndex } = event.detail as { val: unknown; prop: string; rowIndex: number }
+  event.preventDefault()
   const confirmed = await confirm()
   if (confirmed) {
     emit('cell-edit', { rowIndex, prop, val })
-  } else {
-    gridKey.value++
   }
 }
 </script>
@@ -147,7 +145,6 @@ async function onAfterEdit(event: any) {
 
     <ClientOnly v-else>
       <VGrid
-        :key="gridKey"
         :columns="revoColumns"
         :source="rows"
         :filter="enableColumnFilters"
@@ -157,7 +154,7 @@ async function onAfterEdit(event: any) {
         theme="compact"
         @sortingconfigchanged="onSortingConfigChanged"
         @filterconfigchanged="onFilterConfigChanged"
-        @afteredit="onAfterEdit"
+        @beforeedit="onBeforeEdit"
       />
     </ClientOnly>
   </div>

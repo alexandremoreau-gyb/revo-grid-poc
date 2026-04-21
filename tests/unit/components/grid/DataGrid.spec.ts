@@ -198,7 +198,7 @@ describe('DataGrid', () => {
     expect(source).toHaveLength(1)
   })
 
-  it('relaie afteredit vers cell-edit quand la confirmation est acceptée', async () => {
+  it('relaie beforeedit vers cell-edit quand la confirmation est acceptée', async () => {
     // Arrange
     const mockConfirm = vi.fn().mockResolvedValue(true)
     ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -208,7 +208,9 @@ describe('DataGrid', () => {
     })
     const wrapper = mountGrid()
     const grid = wrapper.findComponent(VGrid)
+    const preventDefault = vi.fn()
     const payload = {
+      preventDefault,
       detail: {
         rowIndex: 1,
         prop: 'price',
@@ -217,11 +219,12 @@ describe('DataGrid', () => {
     }
 
     // Act
-    grid.vm.$emit('afteredit', payload)
+    grid.vm.$emit('beforeedit', payload)
+    expect(preventDefault).toHaveBeenCalled()
+    expect(mockConfirm).toHaveBeenCalled()
     await new Promise(r => setTimeout(r, 0))
 
     // Assert
-    expect(mockConfirm).toHaveBeenCalled()
     expect(wrapper.emitted('cell-edit')?.[0]).toEqual([
       {
         rowIndex: 1,
@@ -241,7 +244,9 @@ describe('DataGrid', () => {
     })
     const wrapper = mountGrid()
     const grid = wrapper.findComponent(VGrid)
+    const preventDefault = vi.fn()
     const payload = {
+      preventDefault,
       detail: {
         rowIndex: 1,
         prop: 'price',
@@ -250,11 +255,12 @@ describe('DataGrid', () => {
     }
 
     // Act
-    grid.vm.$emit('afteredit', payload)
+    grid.vm.$emit('beforeedit', payload)
+    expect(preventDefault).toHaveBeenCalled()
+    expect(mockConfirm).toHaveBeenCalled()
     await new Promise(r => setTimeout(r, 0))
 
     // Assert
-    expect(mockConfirm).toHaveBeenCalled()
     expect(wrapper.emitted('cell-edit')).toBeUndefined()
   })
 

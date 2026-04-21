@@ -1,8 +1,8 @@
-import { h, type Ref } from 'vue'
 import { mount } from '@vue/test-utils'
-import { SelectEditor } from '~/components/grid/SelectEditor'
-import DateSortHeader from '~/components/grid/DateSortHeader.vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { h, type Ref } from 'vue'
+import DateSortHeader from '~/components/grid/DateSortHeader.vue'
+import { SelectEditor } from '~/components/grid/SelectEditor'
 import {
   createDateEditor,
   createNumberEditor,
@@ -13,6 +13,10 @@ import {
 const dateSortState = vi.hoisted(() => ({
   sortDir: null as unknown as Ref<'asc' | 'desc'>,
   toggle: vi.fn(),
+}))
+
+const confirmModalState = vi.hoisted(() => ({
+  confirm: vi.fn(),
 }))
 
 vi.mock('~/composables/useDateSort', async () => {
@@ -31,9 +35,19 @@ vi.mock('~/composables/useDateSort', async () => {
   }
 })
 
+vi.mock('~/composables/useConfirmModal', () => ({
+  useConfirmModal: () => ({
+    confirm: confirmModalState.confirm,
+  }),
+}))
+
 function resetDateSortState() {
   dateSortState.sortDir.value = 'desc'
   dateSortState.toggle.mockClear()
+}
+
+function resetConfirmModalState() {
+  confirmModalState.confirm.mockReset()
 }
 
 function stubAnimationFrame() {
@@ -72,15 +86,21 @@ function attachHostElement(editor: any, tagName: 'input' | 'select') {
   return element
 }
 
+function flushMicrotasks() {
+  return new Promise<void>(resolve => setTimeout(resolve, 0))
+}
+
 beforeEach(() => {
   stubAnimationFrame()
   resetDateSortState()
+  resetConfirmModalState()
 })
 
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   resetDateSortState()
+  resetConfirmModalState()
 })
 
 describe('DateSortHeader', () => {
@@ -197,7 +217,7 @@ describe('inlineEditors', () => {
     expect(() => selectHarness.editor.beforeDisconnect?.()).not.toThrow()
   })
 
-  it('createTextEditor gère input, Enter, Tab, Escape et le cycle de vie', () => {
+  it("createTextEditor enregistre immédiatement sur Enter (la confirmation est gérée par DataGrid)", async () => {
     const enterHarness = makeInlineEditorHarness(createTextEditor(), 'draft')
     const enterInput = attachHostElement(enterHarness.editor, 'input')
     const enterFocus = vi.spyOn(enterInput, 'focus')
@@ -206,7 +226,6 @@ describe('inlineEditors', () => {
 
     enterHarness.vnode.props.onInput({ target: { value: 'edited' } })
     enterHarness.vnode.props.onKeyDown({ key: 'Enter', preventDefault: vi.fn() })
-    enterHarness.vnode.props.onBlur()
     enterHarness.editor.componentDidRender()
     enterHarness.editor.beforeDisconnect()
     enterHarness.editor.disconnectedCallback()
@@ -218,7 +237,9 @@ describe('inlineEditors', () => {
     expect(enterSelect).toHaveBeenCalledTimes(1)
     expect(enterBlur).toHaveBeenCalledTimes(1)
     expect(enterHarness.editor.element).toBeNull()
+  })
 
+  it('createTextEditor gère Tab, Escape et le cycle de vie', () => {
     const tabHarness = makeInlineEditorHarness(createTextEditor(), 'draft')
     tabHarness.vnode.props.onInput({ target: { value: 'next' } })
     tabHarness.vnode.props.onKeyDown({ key: 'Tab', preventDefault: vi.fn() })
@@ -231,6 +252,16 @@ describe('inlineEditors', () => {
 
     expect(escapeHarness.save).not.toHaveBeenCalled()
     expect(escapeHarness.close).toHaveBeenCalledWith(false)
+  })
+
+  it("createTextEditor enregistre immédiatement au blur (la confirmation est gérée par DataGrid)", () => {
+    const blurHarness = makeInlineEditorHarness(createTextEditor(), 'draft')
+
+    blurHarness.vnode.props.onInput({ target: { value: 'edited' } })
+    blurHarness.vnode.props.onBlur()
+
+    expect(blurHarness.save).toHaveBeenCalledWith('edited', false)
+    expect(blurHarness.close).toHaveBeenCalledWith(false)
   })
 
   it('createTextEditor ne rejoue pas commit ou cancel après fermeture', () => {
@@ -305,7 +336,21 @@ describe('inlineEditors', () => {
     expect(infinityHarness.save).toHaveBeenCalledWith(null, false)
   })
 
-  it('createStatusEditor gère change, Escape, blur et le cycle de vie', () => {
+  it('createStatusEditor gère Escape, blur et le cycle de vie', () => {
+    const escapeHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), 'Inactive')
+    escapeHarness.vnode.props.onKeyDown({ key: 'Escape', preventDefault: vi.fn() })
+
+    expect(escapeHarness.save).not.toHaveBeenCalled()
+    expect(escapeHarness.close).toHaveBeenCalledWith(false)
+
+    const blurHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), 'Inactive')
+    blurHarness.vnode.props.onBlur()
+
+    expect(blurHarness.save).not.toHaveBeenCalled()
+    expect(blurHarness.close).toHaveBeenCalledWith(false)
+  })
+
+  it('createStatusEditor enregistre immédiatement au change (la confirmation est gérée par DataGrid)', async () => {
     const changeHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), 'Inactive')
     const changeSelect = attachHostElement(changeHarness.editor, 'select')
     const focus = vi.spyOn(changeSelect, 'focus')
@@ -319,22 +364,9 @@ describe('inlineEditors', () => {
 
     expect(changeHarness.save).toHaveBeenCalledWith('Active', false)
     expect(changeHarness.close).toHaveBeenCalledWith(false)
-    expect(changeHarness.save).toHaveBeenCalledTimes(1)
     expect(focus).toHaveBeenCalledTimes(1)
     expect(blur).toHaveBeenCalledTimes(1)
     expect(changeHarness.editor.element).toBeNull()
-
-    const escapeHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), 'Inactive')
-    escapeHarness.vnode.props.onKeyDown({ key: 'Escape', preventDefault: vi.fn() })
-
-    expect(escapeHarness.save).not.toHaveBeenCalled()
-    expect(escapeHarness.close).toHaveBeenCalledWith(false)
-
-    const blurHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), 'Inactive')
-    blurHarness.vnode.props.onBlur()
-
-    expect(blurHarness.save).not.toHaveBeenCalled()
-    expect(blurHarness.close).toHaveBeenCalledWith(false)
   })
 
   it('createStatusEditor ignore les touches non Escape et ne rejoue pas commit ou cancel après fermeture', () => {

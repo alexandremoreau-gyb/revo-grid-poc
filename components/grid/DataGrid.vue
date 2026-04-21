@@ -61,7 +61,6 @@ watch(
   () => props.rows,
   (rows) => {
     gridRows.value = cloneRows(rows)
-    gridKey.value += 1
   },
   { deep: true },
 )
@@ -136,20 +135,17 @@ function onFilterConfigChanged(event: CustomEvent<GridFilterState>) {
   emit('filter-change', event.detail)
 }
 
-async function onBeforeEdit(event: any) {
+async function onAfterEdit(event: any) {
   const { val, prop, rowIndex } = event.detail as { val: unknown; prop: string; rowIndex: number }
-  event.preventDefault()
   const confirmed = await confirm()
   if (confirmed) {
-    gridRows.value = gridRows.value.map((row, index) =>
-      index === rowIndex ? { ...row, [prop]: val } : row,
-    )
     emit('cell-edit', { rowIndex, prop, val })
-    return
+  } else {
+    // revo-grid mute gridRows via setCellData avant d'émettre afteredit.
+    // On repart de props.rows (jamais muté par revo-grid) avant de forcer le remount.
+    gridRows.value = cloneRows(props.rows)
+    gridKey.value += 1
   }
-
-  gridRows.value = cloneRows(props.rows)
-  gridKey.value += 1
 }
 </script>
 
@@ -178,7 +174,7 @@ async function onBeforeEdit(event: any) {
         theme="compact"
         @sortingconfigchanged="onSortingConfigChanged"
         @filterconfigchanged="onFilterConfigChanged"
-        @beforeedit="onBeforeEdit"
+        @afteredit="onAfterEdit"
       />
     </ClientOnly>
   </div>

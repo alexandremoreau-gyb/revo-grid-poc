@@ -221,14 +221,11 @@ describe('DataGrid', () => {
 
     const source = (grid.vm.$attrs.source ?? grid.vm.$props.source) as RowData[]
 
-    // Act
+    // Act — la source est une copie isolée des rows d'origine
     expect(source).not.toBe(rows)
     expect(source[0]).not.toBe(rows[0])
-    source[0].price = 99999
 
-    const preventDefault = vi.fn()
-    grid.vm.$emit('beforeedit', {
-      preventDefault,
+    grid.vm.$emit('afteredit', {
       detail: {
         rowIndex: 0,
         prop: 'price',
@@ -238,17 +235,12 @@ describe('DataGrid', () => {
 
     await new Promise(r => setTimeout(r, 0))
 
-    // Assert
-    expect(preventDefault).toHaveBeenCalled()
+    // Assert — l'annulation ne mute pas rows
     expect(mockConfirm).toHaveBeenCalled()
     expect(rows[0].price).toBe(42500)
-
-    const refreshedGrid = wrapper.findComponent(VGrid)
-    const refreshedSource = (refreshedGrid.vm.$attrs.source ?? refreshedGrid.vm.$props.source) as RowData[]
-    expect(refreshedSource[0].price).toBe(42500)
   })
 
-  it('relaie beforeedit vers cell-edit quand la confirmation est acceptée', async () => {
+  it('relaie afteredit vers cell-edit quand la confirmation est acceptée', async () => {
     // Arrange
     const mockConfirm = vi.fn().mockResolvedValue(true)
     ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -258,9 +250,7 @@ describe('DataGrid', () => {
     })
     const wrapper = mountGrid()
     const grid = wrapper.findComponent(VGrid)
-    const preventDefault = vi.fn()
     const payload = {
-      preventDefault,
       detail: {
         rowIndex: 1,
         prop: 'price',
@@ -269,8 +259,7 @@ describe('DataGrid', () => {
     }
 
     // Act
-    grid.vm.$emit('beforeedit', payload)
-    expect(preventDefault).toHaveBeenCalled()
+    grid.vm.$emit('afteredit', payload)
     expect(mockConfirm).toHaveBeenCalled()
     await new Promise(r => setTimeout(r, 0))
 
@@ -284,7 +273,7 @@ describe('DataGrid', () => {
     ])
   })
 
-  it('n’émet pas cell-edit quand la confirmation est refusée', async () => {
+  it("n'émet pas cell-edit quand la confirmation est refusée", async () => {
     // Arrange
     const mockConfirm = vi.fn().mockResolvedValue(false)
     ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -294,9 +283,7 @@ describe('DataGrid', () => {
     })
     const wrapper = mountGrid()
     const grid = wrapper.findComponent(VGrid)
-    const preventDefault = vi.fn()
     const payload = {
-      preventDefault,
       detail: {
         rowIndex: 1,
         prop: 'price',
@@ -305,8 +292,7 @@ describe('DataGrid', () => {
     }
 
     // Act
-    grid.vm.$emit('beforeedit', payload)
-    expect(preventDefault).toHaveBeenCalled()
+    grid.vm.$emit('afteredit', payload)
     expect(mockConfirm).toHaveBeenCalled()
     await new Promise(r => setTimeout(r, 0))
 

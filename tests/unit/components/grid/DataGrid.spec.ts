@@ -198,6 +198,56 @@ describe('DataGrid', () => {
     expect(source).toHaveLength(1)
   })
 
+  it("isole la source envoyée à VGrid pour éviter qu'un edit annulé ne mute rows", async () => {
+    // Arrange
+    const rows = [{ id: 1, price: 42500 }] as RowData[]
+    const mockConfirm = vi.fn().mockResolvedValue(false)
+    ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
+      visible: { value: false },
+      confirm: mockConfirm,
+      _resolve: vi.fn(),
+    })
+
+    const wrapper = mountGrid({
+      columns: [
+        { prop: 'id', name: 'ID', variant: 'id' },
+        { prop: 'price', name: 'Price', variant: 'price' },
+      ] as ColumnDef[],
+      rows,
+    })
+
+    const grid = wrapper.findComponent(VGrid)
+    expect(grid.exists()).toBe(true)
+
+    const source = (grid.vm.$attrs.source ?? grid.vm.$props.source) as RowData[]
+
+    // Act
+    expect(source).not.toBe(rows)
+    expect(source[0]).not.toBe(rows[0])
+    source[0].price = 99999
+
+    const preventDefault = vi.fn()
+    grid.vm.$emit('beforeedit', {
+      preventDefault,
+      detail: {
+        rowIndex: 0,
+        prop: 'price',
+        val: 99999,
+      },
+    })
+
+    await new Promise(r => setTimeout(r, 0))
+
+    // Assert
+    expect(preventDefault).toHaveBeenCalled()
+    expect(mockConfirm).toHaveBeenCalled()
+    expect(rows[0].price).toBe(42500)
+
+    const refreshedGrid = wrapper.findComponent(VGrid)
+    const refreshedSource = (refreshedGrid.vm.$attrs.source ?? refreshedGrid.vm.$props.source) as RowData[]
+    expect(refreshedSource[0].price).toBe(42500)
+  })
+
   it('relaie beforeedit vers cell-edit quand la confirmation est acceptée', async () => {
     // Arrange
     const mockConfirm = vi.fn().mockResolvedValue(true)

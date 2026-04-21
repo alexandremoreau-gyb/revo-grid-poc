@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { EditorCtr } from '@revolist/revogrid'
 import VGrid, { VGridVueTemplate } from '@revolist/vue3-datagrid'
 import DateSortHeader from '~/components/grid/DateSortHeader.vue'
@@ -49,6 +49,22 @@ const emit = defineEmits<{
 const { confirm } = useConfirmModal()
 
 const { t } = useI18n()
+
+function cloneRows(rows: RowData[]) {
+  return rows.map(row => ({ ...row }))
+}
+
+const gridRows = ref<RowData[]>(cloneRows(props.rows))
+const gridKey = ref(0)
+
+watch(
+  () => props.rows,
+  (rows) => {
+    gridRows.value = cloneRows(rows)
+    gridKey.value += 1
+  },
+  { deep: true },
+)
 
 const panelStyle = computed(() => ({
   height: typeof props.height === 'number' ? `${props.height}px` : props.height,
@@ -125,8 +141,15 @@ async function onBeforeEdit(event: any) {
   event.preventDefault()
   const confirmed = await confirm()
   if (confirmed) {
+    gridRows.value = gridRows.value.map((row, index) =>
+      index === rowIndex ? { ...row, [prop]: val } : row,
+    )
     emit('cell-edit', { rowIndex, prop, val })
+    return
   }
+
+  gridRows.value = cloneRows(props.rows)
+  gridKey.value += 1
 }
 </script>
 
@@ -145,8 +168,9 @@ async function onBeforeEdit(event: any) {
 
     <ClientOnly v-else>
       <VGrid
+        :key="gridKey"
         :columns="revoColumns"
-        :source="rows"
+        :source="gridRows"
         :filter="enableColumnFilters"
         :readonly="!editable"
         :editors="props.editors"

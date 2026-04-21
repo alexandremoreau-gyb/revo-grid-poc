@@ -1,11 +1,24 @@
-import fr from '~/i18n/fr'
-import en from '~/i18n/en'
 import { createI18n } from 'vue-i18n'
 import { mount } from '@vue/test-utils'
 import VGrid from '@revolist/vue3-datagrid'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import DataGrid from '~/components/grid/DataGrid.vue'
+import { useConfirmModal } from '~/composables/useConfirmModal'
+import fr from '~/i18n/fr'
+import en from '~/i18n/en'
 import type { ColumnDef, RowData } from '~/types/grid'
+
+vi.mock('~/composables/useConfirmModal', () => ({
+  useConfirmModal: vi.fn(),
+}))
+
+const defaultConfirmMock = vi.fn().mockResolvedValue(true)
+
+;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
+  visible: { value: false },
+  confirm: defaultConfirmMock,
+  _resolve: vi.fn(),
+})
 
 const i18n = createI18n({
   legacy: false,
@@ -185,8 +198,14 @@ describe('DataGrid', () => {
     expect(source).toHaveLength(1)
   })
 
-  it('relaie afteredit vers cell-edit avec la charge utile attendue', () => {
+  it('relaie afteredit vers cell-edit quand la confirmation est acceptée', async () => {
     // Arrange
+    const mockConfirm = vi.fn().mockResolvedValue(true)
+    ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
+      visible: { value: false },
+      confirm: mockConfirm,
+      _resolve: vi.fn(),
+    })
     const wrapper = mountGrid()
     const grid = wrapper.findComponent(VGrid)
     const payload = {
@@ -199,8 +218,10 @@ describe('DataGrid', () => {
 
     // Act
     grid.vm.$emit('afteredit', payload)
+    await new Promise(r => setTimeout(r, 0))
 
     // Assert
+    expect(mockConfirm).toHaveBeenCalled()
     expect(wrapper.emitted('cell-edit')?.[0]).toEqual([
       {
         rowIndex: 1,
@@ -208,6 +229,33 @@ describe('DataGrid', () => {
         val: 43000,
       },
     ])
+  })
+
+  it('n’émet pas cell-edit quand la confirmation est refusée', async () => {
+    // Arrange
+    const mockConfirm = vi.fn().mockResolvedValue(false)
+    ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
+      visible: { value: false },
+      confirm: mockConfirm,
+      _resolve: vi.fn(),
+    })
+    const wrapper = mountGrid()
+    const grid = wrapper.findComponent(VGrid)
+    const payload = {
+      detail: {
+        rowIndex: 1,
+        prop: 'price',
+        val: 43000,
+      },
+    }
+
+    // Act
+    grid.vm.$emit('afteredit', payload)
+    await new Promise(r => setTimeout(r, 0))
+
+    // Assert
+    expect(mockConfirm).toHaveBeenCalled()
+    expect(wrapper.emitted('cell-edit')).toBeUndefined()
   })
 
   it('relaie les events de tri et de filtre vers les emits métier', () => {

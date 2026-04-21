@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { RowData } from '~/types/grid'
 import { useToast } from '~/composables/useToast'
 import AppToast from '~/components/ui/AppToast.vue'
+import ConfirmModal from '~/components/ui/ConfirmModal.vue'
 import DataGrid from '~/components/grid/DataGrid.vue'
 import { useDateSort } from '~/composables/useDateSort'
 import MultiSelect from '~/components/grid/MultiSelect.vue'
@@ -118,6 +119,7 @@ function resetAllFilters() {
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
     <AppToast />
+    <ConfirmModal />
 
     <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
       <!-- Header -->

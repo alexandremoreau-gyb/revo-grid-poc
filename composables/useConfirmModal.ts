@@ -17,6 +17,7 @@ export function useConfirmModal() {
     resolveRef = null
   }
 
+  /** For test teardown only — abandons any pending confirm() promise. */
   function _reset() {
     visible.value = false
     resolveRef = null

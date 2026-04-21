@@ -8,7 +8,7 @@ function onConfirm() { _resolve(true) }
 function onCancel() { _resolve(false) }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') onCancel()
+  if (e.key === 'Escape' && visible.value) onCancel()
 }
 
 onMounted(() => window.addEventListener('keydown', onKeydown))

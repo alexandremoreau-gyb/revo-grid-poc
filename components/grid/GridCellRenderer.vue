@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
+import { computed, ref } from 'vue'
 import type { GridColumnVariant } from '~/types/grid'
+import GridTooltip from '~/components/ui/GridTooltip.vue'
 
 interface GridCellRendererProps {
   value?: unknown
@@ -14,6 +14,7 @@ interface GridCellRendererProps {
   prop?: string
   type?: string
   variant?: GridColumnVariant
+  centered?: boolean
 }
 
 const props = defineProps<GridCellRendererProps>()
@@ -68,6 +69,13 @@ const RISK_STYLES: Record<string, string> = {
 const RISK_DEFAULT = 'bg-slate-400 text-white'
 
 const value = computed(() => String(rawValue.value ?? ''))
+
+const referenceCopied = ref(false)
+async function copyReference() {
+  await navigator.clipboard.writeText(value.value).catch(() => {})
+  referenceCopied.value = true
+  setTimeout(() => { referenceCopied.value = false }, 1500)
+}
 const numericValue = computed(() => Number(rawValue.value ?? 0))
 const dateLocale = 'fr-FR'
 
@@ -150,6 +158,7 @@ const currencyValue = computed(() =>
 </script>
 
 <template>
+  <div :class="centered ? 'flex h-full w-full items-center justify-center' : 'contents'">
   <!-- selection : flex wrapper pour centrer dans la cellule -->
   <span
     v-if="variant === 'selection'"
@@ -309,6 +318,7 @@ const currencyValue = computed(() =>
     v-else-if="variant === 'email'"
     class="truncate text-xs text-sky-600 hover:underline dark:text-sky-400"
     :href="`mailto:${value}`"
+    :title="value"
   >
     {{ value }}
   </a>
@@ -318,7 +328,7 @@ const currencyValue = computed(() =>
     v-else-if="variant === 'company'"
     class="inline-flex max-w-full items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300"
   >
-    <span class="truncate">{{ value }}</span>
+    <GridTooltip :text="value" class="truncate" />
   </span>
 
   <!-- actions -->
@@ -350,8 +360,29 @@ const currencyValue = computed(() =>
     </span>
   </span>
 
-  <!-- default -->
-  <span v-else class="truncate text-xs text-[var(--color-text)]">
-    {{ value }}
+  <!-- reference : tooltip + copie au clic -->
+  <span
+    v-else-if="variant === 'reference'"
+    class="flex h-full w-full min-w-0 cursor-pointer items-center"
+    :class="referenceCopied ? 'text-emerald-600' : 'text-[var(--color-text)]'"
+    @click.stop="copyReference"
+  >
+    <GridTooltip :text="value" class="truncate text-xs font-mono" />
+    <svg
+      v-if="referenceCopied"
+      class="ml-1 h-3 w-3 shrink-0 text-emerald-500"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M2 6l3 3 5-5" />
+    </svg>
   </span>
+
+  <!-- default -->
+  <GridTooltip v-else :text="value" class="truncate text-xs text-[var(--color-text)]" />
+  </div>
 </template>

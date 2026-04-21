@@ -17,6 +17,7 @@ export type GridColumnVariant =
   | 'actions'
   | 'dossier-status'
   | 'risk'
+  | 'reference'
   // variants crypto (conservés pour /demo)
   | 'symbol'
   | 'price'
@@ -35,6 +36,7 @@ export interface ColumnDef extends Partial<ColumnRegular> {
   width?: number
   editable?: boolean
   variant?: GridColumnVariant
+  centered?: boolean
   /**
    * Priorité d'affichage responsive (1 = toujours visible, 4 = large écran uniquement).
    * Omis = toujours visible (équivalent à 1).

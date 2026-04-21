@@ -1,8 +1,8 @@
 import fr from '~/i18n/fr'
 import en from '~/i18n/en'
 import { createI18n } from 'vue-i18n'
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { GridColumnVariant } from '~/types/grid'
 import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
@@ -15,7 +15,17 @@ const i18n = createI18n({
   messages: { fr, en },
 })
 
-function mountRenderer(value: unknown, variant?: GridColumnVariant) {
+beforeEach(() => {
+  vi.useFakeTimers()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
+
+function mountRenderer(value: unknown, variant?: GridColumnVariant, centered = false) {
   return mount(GridCellRenderer, {
     global: {
       plugins: [i18n],
@@ -31,6 +41,7 @@ function mountRenderer(value: unknown, variant?: GridColumnVariant) {
       type: 'text',
       value,
       variant,
+      centered,
     },
   })
 }
@@ -199,5 +210,72 @@ describe('GridCellRenderer', () => {
     expect(company.text()).toContain('Acme')
     expect(actions.text()).toContain('Edit')
     expect(fallback.text()).toBe('plain text')
+  })
+
+  it('copie la référence, affiche l’état copié puis le réinitialise', async () => {
+    // Arrange
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        writeText,
+      },
+    })
+
+    const wrapper = mountRenderer('REF-123', 'reference')
+
+    // Act
+    await wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').trigger('click')
+    await flushPromises()
+
+    // Assert
+    expect(writeText).toHaveBeenCalledWith('REF-123')
+    expect(wrapper.find('svg').exists()).toBe(true)
+    expect(wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').classes()).toContain('text-emerald-600')
+
+    // Act
+    vi.advanceTimersByTime(1500)
+    await flushPromises()
+
+    // Assert
+    expect(wrapper.find('svg').exists()).toBe(false)
+    expect(wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').classes()).toContain('text-[var(--color-text)]')
+  })
+
+  it('ignore une erreur du presse-papier sans empêcher l’état copié', async () => {
+    // Arrange
+    const writeText = vi.fn().mockRejectedValueOnce(new Error('clipboard unavailable'))
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        writeText,
+      },
+    })
+
+    const wrapper = mountRenderer('REF-404', 'reference')
+
+    // Act
+    await wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').trigger('click')
+    await flushPromises()
+
+    // Assert
+    expect(writeText).toHaveBeenCalledWith('REF-404')
+    expect(wrapper.find('svg').exists()).toBe(true)
+    expect(wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').classes()).toContain('text-emerald-600')
+
+    // Act
+    vi.advanceTimersByTime(1500)
+    await flushPromises()
+
+    // Assert
+    expect(wrapper.find('svg').exists()).toBe(false)
+  })
+
+  it('centre la cellule quand la prop centered est activée', () => {
+    // Arrange / Act
+    const wrapper = mountRenderer('plain text', undefined, true)
+
+    // Assert
+    expect(wrapper.classes()).toContain('flex')
+    expect(wrapper.classes()).toContain('items-center')
+    expect(wrapper.classes()).toContain('justify-center')
   })
 })

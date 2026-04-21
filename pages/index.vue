@@ -12,7 +12,6 @@ import {
   DOSSIER_RISQUES,
   DOSSIER_STATUTS,
   FICHES,
-  TF_CODES,
   createDossierRows,
   dossierColumns,
   dossierEditors,
@@ -31,7 +30,6 @@ const selectedStatuts = ref<string[]>([])
 const selectedRisques = ref<string[]>([])
 const selectedFiches = ref<string[]>([])
 const selectedClients = ref<string[]>([])
-const selectedTf = ref<string[]>([])
 
 // Options pour les selects (fiche en format lisible avec tirets)
 const ficheOptions = [...FICHES].map(f => f.replace(/_/g, '-'))
@@ -53,12 +51,17 @@ const filteredRows = computed(() => {
       if (!selectedFiches.value.includes(rowFiche)) return false
     }
     if (selectedClients.value.length && !selectedClients.value.includes(String(row.client))) return false
-    if (selectedTf.value.length && !selectedTf.value.includes(String(row.tf))) return false
     if (!q) return true
     return (
       String(row.reference ?? '').toLowerCase().includes(q) ||
       String(row.client ?? '').toLowerCase().includes(q) ||
-      String(row.raisonSociale ?? '').toLowerCase().includes(q)
+      String(row.raisonSociale ?? '').toLowerCase().includes(q) ||
+      String(row.fiche ?? '').toLowerCase().includes(q) ||
+      String(row.lp ?? '').toLowerCase().includes(q) ||
+      String(row.tf ?? '').toLowerCase().includes(q) ||
+      String(row.date ?? '').toLowerCase().includes(q) ||
+      String(row.statut ?? '').toLowerCase().includes(q) ||
+      String(row.risque ?? '').toLowerCase().includes(q)
     )
   })
 })
@@ -77,7 +80,7 @@ const pagedRows = computed(() => {
   return sortedRows.value.slice(start, start + pageSize.value)
 })
 
-watch([search, selectedStatuts, selectedRisques, selectedFiches, selectedClients, selectedTf, pageSize, sortDir], () => {
+watch([search, selectedStatuts, selectedRisques, selectedFiches, selectedClients, pageSize, sortDir], () => {
   page.value = 1
 })
 
@@ -100,8 +103,7 @@ const hasActiveFilters = computed(() =>
   selectedStatuts.value.length > 0 ||
   selectedRisques.value.length > 0 ||
   selectedFiches.value.length > 0 ||
-  selectedClients.value.length > 0 ||
-  selectedTf.value.length > 0,
+  selectedClients.value.length > 0,
 )
 
 function resetAllFilters() {
@@ -110,7 +112,6 @@ function resetAllFilters() {
   selectedRisques.value = []
   selectedFiches.value = []
   selectedClients.value = []
-  selectedTf.value = []
 }
 </script>
 
@@ -174,11 +175,6 @@ function resetAllFilters() {
           v-model="selectedClients"
           :options="[...CLIENTS]"
           placeholder="Client"
-        />
-        <MultiSelect
-          v-model="selectedTf"
-          :options="[...TF_CODES]"
-          placeholder="TF"
         />
 
         <button

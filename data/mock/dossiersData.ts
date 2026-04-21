@@ -48,17 +48,17 @@ function formatDate(year: number, month: number, day: number): string {
 
 // Colonnes de la grille dossiers
 export const dossierColumns: ColumnDef[] = [
-  { prop: 'reference',     name: 'RÉFÉRENCE',       size: 210, editable: false },
-  { prop: 'client',        name: 'CLIENT',          size: 160, editable: true, type: 'string', editor: 'dossier-text' },
+  { prop: 'reference',     name: 'RÉFÉRENCE',       size: 250, editable: false, variant: 'reference' },
+  { prop: 'client',        name: 'CLIENT',          size: 160, editable: true, type: 'string', editor: 'dossier-text', centered: true },
   { prop: 'raisonSociale', name: 'RAISON SOCIALE',  size: 200, editable: true, variant: 'company', type: 'string', editor: 'dossier-text' },
-  { prop: 'date',          name: 'DATE',            size: 115, editable: true, variant: 'date', type: 'date', editor: 'dossier-date' },
-  { prop: 'lp',            name: 'LP',              size: 80,  editable: true, type: 'string', editor: 'dossier-text' },
+  { prop: 'date',          name: 'DATE',            size: 100, editable: true, variant: 'date', type: 'date', editor: 'dossier-date' },
+  { prop: 'lp',            name: 'LP',              size: 90,  editable: true, type: 'string', editor: 'dossier-text' },
   { prop: 'tf',            name: 'TF',              size: 80,  editable: true, type: 'string', editor: 'dossier-text' },
-  { prop: 'cumac',         name: 'CUMAC (€)',       size: 130, editable: false, variant: 'currency' },
-  { prop: 'montantTTC',    name: 'MONTANT TTC (€)', size: 140, editable: true, variant: 'currency', type: 'number', editor: 'dossier-number' },
-  { prop: 'volumeMwh',     name: 'VOLUME MWh',      size: 120, editable: false, type: 'number' },
-  { prop: 'statut',        name: 'STATUT',          size: 130, editable: true, variant: 'dossier-status', editor: 'select-statut' },
-  { prop: 'risque',        name: 'RISQUE',          size: 100, editable: false, variant: 'risk' },
+  { prop: 'cumac',         name: 'CUMAC',           size: 115, editable: false, variant: 'currency' },
+  { prop: 'montantTTC',    name: 'MONTANT TTC',     size: 120, editable: true, variant: 'currency', type: 'number', editor: 'dossier-number', centered: true },
+  { prop: 'volumeMwh',     name: 'VOLUME MWh',      size: 100, editable: false, type: 'number', centered: true },
+  { prop: 'statut',        name: 'STATUT',          size: 130, editable: true, variant: 'dossier-status', editor: 'select-statut', centered: true },
+  { prop: 'risque',        name: 'RISQUE',          size: 100, editable: false, variant: 'risk', centered: true },
 ]
 
 // Éditeurs custom à passer à DataGrid — doit rester en dehors du composant Vue
@@ -97,18 +97,18 @@ export function createDossierRows(count = 200): RowData[] {
     else if (statut === 'En attente') risque = (i % 3 === 0) ? 'Attention' : 'OK'
     else risque = (i % 7 === 0) ? 'Attention' : 'OK'
 
+    const isLongRow = id === 84
     return {
-      reference,
+      reference:     isLongRow ? `${reference}-EXTENDED-TEST-OVERFLOW-2025` : reference,
       fiche,
-      client:       pick(CLIENTS, i),
-      raisonSociale: pick(RAISONS, i),
-      date:         dateStr,
-      lp:           `LP-${String(id).padStart(4, '0')}`,
-      tf:           pick(TF_CODES, i),
+      client:        isLongRow ? 'SCHNEIDER ELECTRIC INDUSTRIES FRANCE' : pick(CLIENTS, i),
+      raisonSociale: isLongRow ? 'SCHNEIDER ELECTRIC INDUSTRIES FRANCE SAS & ASSOCIÉS' : pick(RAISONS, i),
+      date:          dateStr,
+      lp:            isLongRow ? `LP-LONGUE-REFERENCE-TEST-${String(id).padStart(4, '0')}` : `LP-${String(id).padStart(4, '0')}`,
+      tf:            isLongRow ? 'TF-EXTENDED-CODE-OVERFLOW' : pick(TF_CODES, i),
       cumac,
       montantTTC,
-      // Pré-formaté en string — le variant large_number affiche en $USD, pas adapté aux MWh
-      volumeMwh: new Intl.NumberFormat('fr-FR').format(volumeMwh),
+      volumeMwh:     new Intl.NumberFormat('fr-FR').format(volumeMwh),
       statut,
       risque,
     }

@@ -4,6 +4,7 @@ import type { EditorCtr } from '@revolist/revogrid'
 import VGrid, { VGridVueTemplate } from '@revolist/vue3-datagrid'
 import DateSortHeader from '~/components/grid/DateSortHeader.vue'
 import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
+import GridHeaderRenderer from '~/components/grid/GridHeaderRenderer.vue'
 import type { ColumnDef, GridColumnVariant, GridFilterState, GridSortState, RowData } from '~/types/grid'
 
 interface CellEditPayload {
@@ -65,25 +66,45 @@ const shellClasses = computed(() =>
 const ALL_VARIANTS: GridColumnVariant[] = [
   'selection', 'id', 'symbol', 'price', 'large_number', 'trend', 'percent',
   'tags', 'bool', 'status', 'currency', 'date', 'progress', 'email', 'company',
-  'actions', 'text', 'dossier-status', 'risk',
+  'actions', 'text', 'dossier-status', 'risk', 'reference',
 ]
 const variantTemplates = Object.fromEntries(
   ALL_VARIANTS.map(variant => [variant, VGridVueTemplate(GridCellRenderer, { variant })])
 ) as Record<GridColumnVariant, ReturnType<typeof VGridVueTemplate>>
 
+const centeredVariantTemplates = Object.fromEntries(
+  ALL_VARIANTS.map(variant => [variant, VGridVueTemplate(GridCellRenderer, { variant, centered: true })])
+) as Record<GridColumnVariant, ReturnType<typeof VGridVueTemplate>>
+
+const defaultCellTemplate = VGridVueTemplate(GridCellRenderer, {})
+const centeredDefaultTemplate = VGridVueTemplate(GridCellRenderer, { centered: true })
+
 const dateHeaderTemplate = VGridVueTemplate(DateSortHeader, {})
+const defaultHeaderTemplate = VGridVueTemplate(GridHeaderRenderer, {})
 
 const revoColumns = computed(() =>
   props.columns.map((col) => {
     const isEditable = col.editable === true
+    const isCentered = col.centered === true
+
+    let cellTemplate: ReturnType<typeof VGridVueTemplate>
+    if (col.variant && isCentered) {
+      cellTemplate = centeredVariantTemplates[col.variant]
+    } else if (col.variant) {
+      cellTemplate = variantTemplates[col.variant]
+    } else if (isCentered) {
+      cellTemplate = centeredDefaultTemplate
+    } else {
+      cellTemplate = defaultCellTemplate
+    }
 
     return {
       ...col,
       name: col.name ?? col.label ?? String(col.prop),
       ...(col.editable !== undefined ? { readonly: !col.editable } : {}),
       ...(isEditable ? { editor: col.editor } : {}),
-      ...(col.variant ? { cellTemplate: variantTemplates[col.variant] } : {}),
-      ...(col.prop === 'date' ? { columnTemplate: dateHeaderTemplate } : {}),
+      cellTemplate,
+      ...(col.prop === 'date' ? { columnTemplate: dateHeaderTemplate } : { columnTemplate: defaultHeaderTemplate }),
     }
   })
 )

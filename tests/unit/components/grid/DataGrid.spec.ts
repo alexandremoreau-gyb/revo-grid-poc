@@ -106,6 +106,63 @@ describe('DataGrid', () => {
     expect(typeof priceCol?.cellTemplate).toBe('function')
   })
 
+  it('gère les variantes centrées et les cellules centrées sans variant', () => {
+    // Arrange
+    const wrapper = mountGrid({
+      columns: [
+        {
+          prop: 'centeredVariant',
+          name: 'Centered Variant',
+          variant: 'price',
+          centered: true,
+        },
+        {
+          prop: 'centeredText',
+          name: 'Centered Text',
+          centered: true,
+        },
+        {
+          prop: 'price',
+          name: 'Price',
+          variant: 'price',
+        },
+        {
+          prop: 'symbol',
+          name: 'Symbol',
+        },
+      ] as ColumnDef[],
+      rows: [
+        {
+          centeredVariant: 1234.56,
+          centeredText: 'Aligned',
+          price: 987.65,
+          symbol: 'BTC',
+        },
+      ] as RowData[],
+    })
+
+    // Act
+    const grid = wrapper.findComponent(VGrid)
+
+    // Assert
+    expect(grid.exists()).toBe(true)
+
+    const cols = (grid.vm.$attrs.columns ?? grid.vm.$props.columns) as any[]
+    const centeredVariantCol = cols.find((c: any) => c.prop === 'centeredVariant')
+    const centeredTextCol = cols.find((c: any) => c.prop === 'centeredText')
+    const priceCol = cols.find((c: any) => c.prop === 'price')
+    const symbolCol = cols.find((c: any) => c.prop === 'symbol')
+
+    expect(centeredVariantCol?.name).toBe('Centered Variant')
+    expect(centeredTextCol?.name).toBe('Centered Text')
+    expect(typeof centeredVariantCol?.cellTemplate).toBe('function')
+    expect(typeof centeredTextCol?.cellTemplate).toBe('function')
+    expect(typeof priceCol?.cellTemplate).toBe('function')
+    expect(typeof symbolCol?.cellTemplate).toBe('function')
+    expect(centeredVariantCol?.cellTemplate).not.toBe(priceCol?.cellTemplate)
+    expect(centeredTextCol?.cellTemplate).not.toBe(symbolCol?.cellTemplate)
+  })
+
   it('passe les lignes dans source et résout les noms de colonnes de secours', () => {
     // Arrange
     const wrapper = mountGrid({

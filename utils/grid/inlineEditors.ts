@@ -1,52 +1,19 @@
 import type { ColumnDataSchemaModel, EditCell, EditorCtr } from '@revolist/revogrid'
-
-type CloseFn = (focusNext?: boolean) => void
-type SaveFn = (value?: unknown, preventFocus?: boolean) => void
-type HFn = (tag: string, props?: Record<string, unknown>, children?: unknown[]) => unknown
-
-interface InlineEditorBase {
-  element?: Element | null
-  editCell?: EditCell
-  beforeDisconnect?(): void
-  componentDidRender?(): void
-  disconnectedCallback?(): void
-  render(h: HFn): unknown
-}
-
-function asString(value: unknown): string {
-  return value == null ? '' : String(value)
-}
-
-function inputStyles(): Record<string, string> {
-  return {
-    width: '100%',
-    height: '100%',
-    boxSizing: 'border-box',
-    border: '1px solid var(--color-primary)',
-    borderRadius: '6px',
-    outline: 'none',
-    background: 'var(--color-surface)',
-    color: 'var(--color-text)',
-    padding: '0 8px',
-    font: 'inherit',
-  }
-}
-
-function selectStyles(): Record<string, string> {
-  return {
-    width: '100%',
-    height: '100%',
-    boxSizing: 'border-box',
-    border: '1px solid var(--color-primary)',
-    borderRadius: '6px',
-    outline: 'none',
-    background: 'var(--color-surface)',
-    color: 'var(--color-text)',
-    padding: '0 8px',
-    font: 'inherit',
-    cursor: 'pointer',
-  }
-}
+import {
+  asString,
+  blurFirstInput,
+  blurFirstSelect,
+  focusInput,
+  focusSelect,
+  handleInputEditorKeyDown,
+  inputStyles,
+  type CloseFn,
+  type HFn,
+  type InlineEditorBase,
+  normalizeNumberValue,
+  type SaveFn,
+  selectStyles,
+} from '~/utils/grid/editorHelpers'
 
 function createInputEditor(
   inputType: 'text' | 'date' | 'number',
@@ -79,20 +46,13 @@ function createInputEditor(
           this.currentValue = (event.target as HTMLInputElement).value
         },
         onKeyDown: (event: KeyboardEvent) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            this.commit(false)
-          }
-
-          if (event.key === 'Tab') {
-            event.preventDefault()
-            this.commit(true)
-          }
-
-          if (event.key === 'Escape') {
-            event.preventDefault()
-            this.cancel()
-          }
+          handleInputEditorKeyDown(
+            event,
+            this.editCell,
+            () => this.commit(false),
+            () => this.moveNext(),
+            () => this.cancel(),
+          )
         },
         onBlur: () => {
           if (!this.committed) {
@@ -103,20 +63,11 @@ function createInputEditor(
     }
 
     componentDidRender(): void {
-      const input = this.element?.firstElementChild as HTMLInputElement | null
-      if (!input) return
-
-      requestAnimationFrame(() => {
-        input.focus()
-        if (inputType !== 'date') {
-          input.select()
-        }
-      })
+      focusInput(this.element, inputType)
     }
 
     beforeDisconnect(): void {
-      const input = this.element?.firstElementChild as HTMLInputElement | null
-      input?.blur()
+      blurFirstInput(this.element)
     }
 
     disconnectedCallback(): void {
@@ -136,6 +87,14 @@ function createInputEditor(
       if (this.committed) return
       this.committed = true
       this.close(false)
+    }
+
+    private moveNext(): void {
+      if (this.committed) return
+      this.committed = true
+      const value = normalize(this.currentValue)
+      this.save(value, true)
+      this.close(true)
     }
   } as unknown as EditorCtr
 }
@@ -186,17 +145,11 @@ function createSelectEditor(options: readonly string[]): EditorCtr {
     }
 
     componentDidRender(): void {
-      const select = this.element?.firstElementChild as HTMLSelectElement | null
-      if (!select) return
-
-      requestAnimationFrame(() => {
-        select.focus()
-      })
+      focusSelect(this.element)
     }
 
     beforeDisconnect(): void {
-      const select = this.element?.firstElementChild as HTMLSelectElement | null
-      select?.blur()
+      blurFirstSelect(this.element)
     }
 
     disconnectedCallback(): void {
@@ -227,13 +180,7 @@ export function createDateEditor(): EditorCtr {
 }
 
 export function createNumberEditor(): EditorCtr {
-  return createInputEditor('number', (raw) => {
-    const normalized = raw.trim().replace(',', '.')
-    if (!normalized) return null
-
-    const value = Number(normalized)
-    return Number.isFinite(value) ? value : null
-  })
+  return createInputEditor('number', normalizeNumberValue)
 }
 
 export function createStatusEditor(options: readonly string[]): EditorCtr {

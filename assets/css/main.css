@@ -111,6 +111,19 @@ revo-grid[theme="darkCompact"] {
   --revo-grid-filter-panel-divider: var(--color-border);
 }
 
+/* ── Transitions globales ─────────────────────────────────────────────── */
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.97);
+}
+
 /* Header : no uppercase, police cohérente avec le design system */
 revo-grid[theme="compact"] revogr-header,
 revo-grid[theme="darkCompact"] revogr-header {

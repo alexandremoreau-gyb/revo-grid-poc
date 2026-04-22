@@ -1,12 +1,12 @@
 import { nextTick } from 'vue'
+import { useTheme } from '~/composables/app/useTheme'
 import { beforeEach, describe, expect, it } from 'vitest'
-
-import { useTheme } from '~/composables/useTheme'
 
 describe('useTheme', () => {
   beforeEach(() => {
     localStorage.clear()
     document.documentElement.classList.remove('dark')
+    useState('app-theme').value = undefined
   })
 
   it('retourne "light" comme thème par défaut', () => {
@@ -19,10 +19,10 @@ describe('useTheme', () => {
 
   it('toggle passe de light à dark', async () => {
     // Arrange
-    const { theme, toggleTheme } = useTheme()
+    const { theme, toggle } = useTheme()
 
     // Act
-    toggleTheme()
+    toggle()
     await nextTick()
 
     // Assert
@@ -32,11 +32,11 @@ describe('useTheme', () => {
 
   it('toggle passe de dark à light', async () => {
     // Arrange
-    const { theme, toggleTheme } = useTheme()
-    toggleTheme() // → dark
+    const { theme, toggle } = useTheme()
+    toggle() // → dark
 
     // Act
-    toggleTheme() // → light
+    toggle() // → light
 
     // Assert
     expect(theme.value).toBe('light')
@@ -44,10 +44,10 @@ describe('useTheme', () => {
 
   it('persiste le thème dans localStorage', async () => {
     // Arrange
-    const { toggleTheme } = useTheme()
+    const { toggle } = useTheme()
 
     // Act
-    toggleTheme()
+    toggle()
     await nextTick()
 
     // Assert

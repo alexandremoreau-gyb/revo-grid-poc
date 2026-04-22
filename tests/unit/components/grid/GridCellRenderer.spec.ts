@@ -9,6 +9,8 @@ import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
 
 // Cette suite couvre les variantes de rendu de cellule RevoGrid.
 // L'objectif est de verrouiller le formatage métier, pas le HTML exact.
+const CELL_SPAN_SELECTOR = 'span span'
+const REFERENCE_CELL_SELECTOR = 'span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center'
 const i18n = createI18n({
   legacy: false,
   locale: 'fr',
@@ -24,6 +26,8 @@ afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
+
+type RendererWrapper = ReturnType<typeof mountRenderer>
 
 function mountRenderer(value: unknown, variant?: GridColumnVariant, centered = false) {
   return mount(GridCellRenderer, {
@@ -46,6 +50,18 @@ function mountRenderer(value: unknown, variant?: GridColumnVariant, centered = f
   })
 }
 
+function getCellSpan(wrapper: RendererWrapper) {
+  return wrapper.get(CELL_SPAN_SELECTOR)
+}
+
+function getReferenceCell(wrapper: RendererWrapper) {
+  return wrapper.get(REFERENCE_CELL_SELECTOR)
+}
+
+function expectSpanClass(wrapper: RendererWrapper, className: string) {
+  expect(getCellSpan(wrapper).classes()).toContain(className)
+}
+
 describe('GridCellRenderer', () => {
   it('rend la sélection en état coché ou décoché', () => {
     // Arrange / Act
@@ -54,9 +70,9 @@ describe('GridCellRenderer', () => {
 
     // Assert
     expect(checked.find('svg').exists()).toBe(true)
-    expect(checked.get('span span').classes()).toContain('bg-[var(--color-primary)]')
+    expectSpanClass(checked, 'bg-[var(--color-primary)]')
     expect(unchecked.find('svg').exists()).toBe(false)
-    expect(unchecked.get('span span').classes()).toContain('border-[var(--color-border)]')
+    expectSpanClass(unchecked, 'border-[var(--color-border)]')
   })
 
   it('rend les variantes id et symbol', () => {
@@ -73,15 +89,17 @@ describe('GridCellRenderer', () => {
 
   it('formate les prix sur toutes les plages', () => {
     // Arrange / Act
-    const low = mountRenderer(0.5, 'price')
-    const mid = mountRenderer(12.34, 'price')
-    const high = mountRenderer(1500, 'price')
+    const cases = [
+      { value: 0.5, expected: '$0.5' },
+      { value: 12.34, expected: '$12.34' },
+      { value: 1500, expected: '$1,500' },
+    ] as const
     const zero = mountRenderer(undefined, 'price')
 
     // Assert
-    expect(low.text()).toContain('$0.5')
-    expect(mid.text()).toContain('$12.34')
-    expect(high.text()).toContain('$1,500')
+    for (const { value, expected } of cases) {
+      expect(mountRenderer(value, 'price').text()).toContain(expected)
+    }
     expect(zero.text()).toMatch(/^\$0(?:\.0+)?$/)
   })
 
@@ -151,8 +169,8 @@ describe('GridCellRenderer', () => {
     const fallback = mountRenderer('Archived', 'status')
 
     // Assert — le bool rend désormais un badge circulaire (ring + bg-emerald-50/bg-slate-100)
-    expect(boolTrue.get('span span').classes()).toContain('bg-emerald-50')
-    expect(boolFalse.get('span span').classes()).toContain('bg-slate-100')
+    expectSpanClass(boolTrue, 'bg-emerald-50')
+    expectSpanClass(boolFalse, 'bg-slate-100')
     expect(active.find('.bg-emerald-100').exists()).toBe(true)
     expect(pending.find('.bg-amber-100').exists()).toBe(true)
     expect(inactive.find('.bg-rose-100').exists()).toBe(true)
@@ -166,11 +184,11 @@ describe('GridCellRenderer', () => {
 
     // Assert
     expect(known.text()).toBe('Déposé')
-    expect(known.get('span span').classes()).toContain('bg-emerald-600')
-    expect(known.get('span span').classes()).toContain('text-white')
+    expectSpanClass(known, 'bg-emerald-600')
+    expectSpanClass(known, 'text-white')
     expect(fallback.text()).toBe('Archivé')
-    expect(fallback.get('span span').classes()).toContain('bg-slate-400')
-    expect(fallback.get('span span').classes()).toContain('text-white')
+    expectSpanClass(fallback, 'bg-slate-400')
+    expectSpanClass(fallback, 'text-white')
   })
 
   it('rend les badges risk connus et de repli', () => {
@@ -180,11 +198,11 @@ describe('GridCellRenderer', () => {
 
     // Assert
     expect(known.text()).toBe('OK')
-    expect(known.get('span span').classes()).toContain('bg-emerald-600')
-    expect(known.get('span span').classes()).toContain('text-white')
+    expectSpanClass(known, 'bg-emerald-600')
+    expectSpanClass(known, 'text-white')
     expect(fallback.text()).toBe('Inconnu')
-    expect(fallback.get('span span').classes()).toContain('bg-slate-400')
-    expect(fallback.get('span span').classes()).toContain('text-white')
+    expectSpanClass(fallback, 'bg-slate-400')
+    expectSpanClass(fallback, 'text-white')
   })
 
   it('rend les variantes currency, date, progress, email, company, actions et fallback', () => {
@@ -207,9 +225,25 @@ describe('GridCellRenderer', () => {
     expect(progressMid.get('span span span').classes()).toContain('bg-amber-500')
     expect(progressHigh.get('span span span').classes()).toContain('bg-emerald-500')
     expect(email.get('a').attributes('href')).toBe('mailto:alice@test.com')
+    expect(email.get('a').attributes('title')).toBeUndefined()
+    expect(email.get('a span.block.w-full.truncate').text()).toBe('alice@test.com')
     expect(company.text()).toContain('Acme')
     expect(actions.text()).toContain('Edit')
     expect(fallback.text()).toBe('plain text')
+  })
+
+  it('rend les badges utilisateur avec tooltip tronquable', () => {
+    // Arrange / Act
+    const role = mountRenderer('Administrateur principal multi-agences', 'user-role')
+    const status = mountRenderer('Activation en attente de validation longue', 'user-status')
+
+    // Assert
+    expect(role.text()).toBe('Administrateur principal multi-agences')
+    expectSpanClass(role, 'max-w-full')
+    expect(role.get('span span span.block.w-full.truncate').text()).toBe('Administrateur principal multi-agences')
+    expect(status.text()).toBe('Activation en attente de validation longue')
+    expectSpanClass(status, 'max-w-full')
+    expect(status.get('span span span.block.w-full.truncate').text()).toBe('Activation en attente de validation longue')
   })
 
   it('copie la référence, affiche l’état copié puis le réinitialise', async () => {
@@ -224,13 +258,13 @@ describe('GridCellRenderer', () => {
     const wrapper = mountRenderer('REF-123', 'reference')
 
     // Act
-    await wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').trigger('click')
+    await getReferenceCell(wrapper).trigger('click')
     await flushPromises()
 
     // Assert
     expect(writeText).toHaveBeenCalledWith('REF-123')
     expect(wrapper.find('svg').exists()).toBe(true)
-    expect(wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').classes()).toContain('text-emerald-600')
+    expect(getReferenceCell(wrapper).classes()).toContain('text-emerald-600')
 
     // Act
     vi.advanceTimersByTime(1500)
@@ -238,7 +272,7 @@ describe('GridCellRenderer', () => {
 
     // Assert
     expect(wrapper.find('svg').exists()).toBe(false)
-    expect(wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').classes()).toContain('text-[var(--color-text)]')
+    expect(getReferenceCell(wrapper).classes()).toContain('text-[var(--color-text)]')
   })
 
   it('ignore une erreur du presse-papier sans empêcher l’état copié', async () => {
@@ -253,13 +287,13 @@ describe('GridCellRenderer', () => {
     const wrapper = mountRenderer('REF-404', 'reference')
 
     // Act
-    await wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').trigger('click')
+    await getReferenceCell(wrapper).trigger('click')
     await flushPromises()
 
     // Assert
     expect(writeText).toHaveBeenCalledWith('REF-404')
     expect(wrapper.find('svg').exists()).toBe(true)
-    expect(wrapper.get('span.flex.h-full.w-full.min-w-0.cursor-pointer.items-center').classes()).toContain('text-emerald-600')
+    expect(getReferenceCell(wrapper).classes()).toContain('text-emerald-600')
 
     // Act
     vi.advanceTimersByTime(1500)

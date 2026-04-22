@@ -1,18 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
+import VGrid from '@revolist/vue3-datagrid'
 import type { EditorCtr } from '@revolist/revogrid'
-import VGrid, { VGridVueTemplate } from '@revolist/vue3-datagrid'
-import DateSortHeader from '~/components/grid/DateSortHeader.vue'
-import GridCellRenderer from '~/components/grid/GridCellRenderer.vue'
-import GridHeaderRenderer from '~/components/grid/GridHeaderRenderer.vue'
-import { useConfirmModal } from '~/composables/useConfirmModal'
-import type { ColumnDef, GridColumnVariant, GridFilterState, GridSortState, RowData } from '~/types/grid'
-
-interface CellEditPayload {
-  rowIndex: number
-  prop: string
-  val: unknown
-}
+import { useRevoGridColumns } from '~/composables/grid/useRevoGridColumns'
+import { useGridPendingEdits } from '~/composables/grid/useGridPendingEdits'
+import type { CellEditPayload, ColumnDef, GridFilterState, GridSortState, RowData } from '~/types/grid'
 
 interface Props {
   columns: ColumnDef[]
@@ -40,30 +32,30 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'sort-change': [state: GridSortState]
-  'filter-change': [state: GridFilterState]
   'row-select': [rows: RowData[]]
+  'sort-change': [state: GridSortState]
   'cell-edit': [payload: CellEditPayload]
+  'pending-change': [hasPending: boolean]
+  'filter-change': [state: GridFilterState]
 }>()
 
-const { confirm } = useConfirmModal()
-
 const { t } = useI18n()
-
-function cloneRows(rows: RowData[]) {
-  return rows.map(row => ({ ...row }))
-}
-
-const gridRows = ref<RowData[]>(cloneRows(props.rows))
-const gridKey = ref(0)
-
-watch(
-  () => props.rows,
-  (rows) => {
-    gridRows.value = cloneRows(rows)
-  },
-  { deep: true },
-)
+const rows = computed(() => props.rows)
+const columns = computed(() => props.columns)
+const editable = computed(() => props.editable)
+const { revoColumns } = useRevoGridColumns(columns, editable)
+const {
+  gridKey,
+  gridRows,
+  confirmPendingRow,
+  onAfterEdit,
+  onBeforeEditStart,
+  onEditClosed,
+} = useGridPendingEdits({
+  rows,
+  emitCellEdit: payload => emit('cell-edit', payload),
+  emitPendingChange: hasPending => emit('pending-change', hasPending),
+})
 
 const panelStyle = computed(() => ({
   height: typeof props.height === 'number' ? `${props.height}px` : props.height,
@@ -79,53 +71,6 @@ const shellClasses = computed(() =>
     ? 'flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm'
     : 'flex h-full flex-col overflow-hidden bg-[var(--color-surface)]'
 )
-// VGridVueTemplate doit être créé pendant setup() où getCurrentInstance() est valide.
-// Son 2e argument est un objet de props STATIQUES mergé avec le cell-model de revo-grid.
-const ALL_VARIANTS: GridColumnVariant[] = [
-  'selection', 'id', 'symbol', 'price', 'large_number', 'trend', 'percent',
-  'tags', 'bool', 'status', 'currency', 'date', 'progress', 'email', 'company',
-  'actions', 'text', 'dossier-status', 'risk', 'reference',
-]
-const variantTemplates = Object.fromEntries(
-  ALL_VARIANTS.map(variant => [variant, VGridVueTemplate(GridCellRenderer, { variant })])
-) as Record<GridColumnVariant, ReturnType<typeof VGridVueTemplate>>
-
-const centeredVariantTemplates = Object.fromEntries(
-  ALL_VARIANTS.map(variant => [variant, VGridVueTemplate(GridCellRenderer, { variant, centered: true })])
-) as Record<GridColumnVariant, ReturnType<typeof VGridVueTemplate>>
-
-const defaultCellTemplate = VGridVueTemplate(GridCellRenderer, {})
-const centeredDefaultTemplate = VGridVueTemplate(GridCellRenderer, { centered: true })
-
-const dateHeaderTemplate = VGridVueTemplate(DateSortHeader, {})
-const defaultHeaderTemplate = VGridVueTemplate(GridHeaderRenderer, {})
-
-const revoColumns = computed(() =>
-  props.columns.map((col) => {
-    const isEditable = col.editable === true
-    const isCentered = col.centered === true
-
-    let cellTemplate: ReturnType<typeof VGridVueTemplate>
-    if (col.variant && isCentered) {
-      cellTemplate = centeredVariantTemplates[col.variant]
-    } else if (col.variant) {
-      cellTemplate = variantTemplates[col.variant]
-    } else if (isCentered) {
-      cellTemplate = centeredDefaultTemplate
-    } else {
-      cellTemplate = defaultCellTemplate
-    }
-
-    return {
-      ...col,
-      name: col.name ?? col.label ?? String(col.prop),
-      ...(col.editable !== undefined ? { readonly: !col.editable } : {}),
-      ...(isEditable ? { editor: col.editor } : {}),
-      cellTemplate,
-      ...(col.prop === 'date' ? { columnTemplate: dateHeaderTemplate } : { columnTemplate: defaultHeaderTemplate }),
-    }
-  })
-)
 
 function onSortingConfigChanged(event: CustomEvent<GridSortState>) {
   emit('sort-change', event.detail)
@@ -135,22 +80,12 @@ function onFilterConfigChanged(event: CustomEvent<GridFilterState>) {
   emit('filter-change', event.detail)
 }
 
-async function onAfterEdit(event: any) {
-  const { val, prop, rowIndex } = event.detail as { val: unknown; prop: string; rowIndex: number }
-  const confirmed = await confirm()
-  if (confirmed) {
-    emit('cell-edit', { rowIndex, prop, val })
-  } else {
-    // revo-grid mute gridRows via setCellData avant d'émettre afteredit.
-    // On repart de props.rows (jamais muté par revo-grid) avant de forcer le remount.
-    gridRows.value = cloneRows(props.rows)
-    gridKey.value += 1
-  }
-}
+defineExpose({ confirmPendingRow })
 </script>
 
 <template>
   <div
+    ref="gridWrapper"
     :class="shellClasses"
     :style="panelStyle"
   >
@@ -174,6 +109,9 @@ async function onAfterEdit(event: any) {
         theme="compact"
         @sortingconfigchanged="onSortingConfigChanged"
         @filterconfigchanged="onFilterConfigChanged"
+        @beforeeditstart="onBeforeEditStart"
+        @canceledit="onEditClosed"
+        @closeedit="onEditClosed"
         @afteredit="onAfterEdit"
       />
     </ClientOnly>

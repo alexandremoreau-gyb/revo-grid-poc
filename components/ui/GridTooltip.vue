@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+defineOptions({
+  inheritAttrs: false,
+})
+
+defineProps<{ text: string }>()
 
 const showTooltip = ref(false)
 const el = ref<HTMLElement | null>(null)
-const props = defineProps<{ text: string }>()
 const tooltipStyle = ref({ top: '0px', left: '0px' })
 
 function onMouseEnter() {
@@ -21,6 +25,7 @@ function onMouseEnter() {
 <template>
   <span
     ref="el"
+    v-bind="$attrs"
     class="block w-full truncate"
     @mouseenter="onMouseEnter"
     @mouseleave="showTooltip = false"

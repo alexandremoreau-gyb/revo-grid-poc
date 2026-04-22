@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NavBar from '~/components/navigation/NavBar.vue'
-import { useSidebar } from '~/composables/useSidebar'
+import { useSidebar } from '~/composables/app/useSidebar'
 
 const { collapsed } = useSidebar()
 </script>

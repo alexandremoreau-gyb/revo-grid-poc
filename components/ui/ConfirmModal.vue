@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
-import { useConfirmModal } from '~/composables/useConfirmModal'
+import { useConfirmModal } from '~/composables/app/useConfirmModal'
 
 const { visible, _resolve } = useConfirmModal()
 
@@ -34,25 +34,25 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         <div class="absolute inset-0 bg-black/40" />
 
         <!-- Dialog -->
-        <div class="relative z-10 w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xl">
-          <p class="text-sm font-medium text-[var(--color-text)]">
+        <div class="relative z-10 w-full max-w-xs rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xl">
+          <p class="text-sm font-medium flex justify-center text-[var(--color-text)]">
             Confirmer la modification ?
           </p>
 
-          <div class="mt-5 flex justify-end gap-2">
+          <div class="mt-5 flex justify-center gap-2">
             <button
               type="button"
-              class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-bg)]"
-              @click="onCancel"
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
-              class="rounded-lg bg-[var(--color-primary,#1A1A2E)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+              class="rounded-lg border border-[var(--color-primary)] bg-[var(--color-primary)]/8 px-4 py-2 text-sm font-medium text-[var(--color-primary)] transition-colors"
               @click="onConfirm"
             >
               Confirmer
+            </button>
+            <button
+              type="button"
+              class="rounded-lg border border-rose-300 py-1.5 pl-2.5 pr-3 text-sm text-rose-500"
+              @click="onCancel"
+            >
+              Annuler
             </button>
           </div>
         </div>

@@ -21,8 +21,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'update:page': [value: number]
-  'update:pageSize': [value: number]
   'page-change': [value: number]
+  'update:pageSize': [value: number]
   'page-size-change': [value: number]
 }>()
 
@@ -39,6 +39,13 @@ const rangeStart = computed(() =>
 const rangeEnd = computed(() =>
   Math.min(props.page * props.pageSize, props.total),
 )
+const pageSizeModel = computed({
+  get: () => props.pageSize,
+  set: (value: number) => {
+    emit('update:pageSize', value)
+    emit('page-size-change', value)
+  },
+})
 
 function setPage(value: number) {
   const normalizedPage = Math.min(Math.max(1, value), pageCount.value)
@@ -47,12 +54,6 @@ function setPage(value: number) {
   emit('page-change', normalizedPage)
 }
 
-function setPageSize(event: Event) {
-  const pageSize = Number((event.target as HTMLSelectElement).value)
-
-  emit('update:pageSize', pageSize)
-  emit('page-size-change', pageSize)
-}
 </script>
 
 <template>
@@ -73,9 +74,8 @@ function setPageSize(event: Event) {
       >
         <span>{{ t('common.rowsPerPage') }}</span>
         <select
+          v-model.number="pageSizeModel"
           class="rounded border border-[var(--color-border)] bg-transparent px-2 py-1.5 text-sm text-[var(--color-text)]"
-          :value="pageSize"
-          @change="setPageSize"
         >
           <option
             v-for="option in pageSizeOptions"

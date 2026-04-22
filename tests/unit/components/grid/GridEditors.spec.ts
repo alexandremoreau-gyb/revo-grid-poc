@@ -1,14 +1,35 @@
-import { mount } from '@vue/test-utils'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { h, type Ref } from 'vue'
+import { mount } from '@vue/test-utils'
+import { SelectEditor } from '~/utils/grid/SelectEditor'
+import type { CloseFn, HFn, InlineEditorBase, SaveFn } from '~/utils/grid/editorHelpers'
 import DateSortHeader from '~/components/grid/DateSortHeader.vue'
-import { SelectEditor } from '~/components/grid/SelectEditor'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createDateEditor,
   createNumberEditor,
   createStatusEditor,
   createTextEditor,
-} from '~/components/grid/inlineEditors'
+} from '~/utils/grid/inlineEditors'
+
+type InlineEditorCtor = new (
+  column: unknown,
+  save: SaveFn,
+  close: CloseFn,
+) => InlineEditorBase
+
+type InlineEditorVNodeProps = {
+  value?: unknown
+  onBlur?: () => void
+  onChange?: (event: { target: { value: string } }) => void
+  onInput?: (event: { target: { value: string } }) => void
+  onKeyDown?: (event: { key: string, preventDefault: () => void }) => void
+}
+
+type InlineEditorVNode = {
+  props: InlineEditorVNodeProps
+}
+
+const statusOptions = ['Active', 'Inactive'] as const
 
 const dateSortState = vi.hoisted(() => ({
   sortDir: null as unknown as Ref<'asc' | 'desc'>,
@@ -19,7 +40,7 @@ const confirmModalState = vi.hoisted(() => ({
   confirm: vi.fn(),
 }))
 
-vi.mock('~/composables/useDateSort', async () => {
+vi.mock('~/composables/grid/useDateSort', async () => {
   const { ref } = await import('vue')
 
   dateSortState.sortDir = ref<'asc' | 'desc'>('desc')
@@ -35,7 +56,7 @@ vi.mock('~/composables/useDateSort', async () => {
   }
 })
 
-vi.mock('~/composables/useConfirmModal', () => ({
+vi.mock('~/composables/app/useConfirmModal', () => ({
   useConfirmModal: () => ({
     confirm: confirmModalState.confirm,
   }),
@@ -57,14 +78,14 @@ function stubAnimationFrame() {
   })
 }
 
-function makeInlineEditorHarness(ctor: any, value: unknown) {
+function makeInlineEditorHarness(ctor: InlineEditorCtor, value: unknown) {
   const save = vi.fn()
   const close = vi.fn()
   const editor = new ctor({}, save, close)
 
   editor.editCell = { val: value }
 
-  const vnode = editor.render(h as any) as any
+  const vnode = editor.render(h as unknown as HFn) as InlineEditorVNode
 
   return {
     close,
@@ -74,9 +95,9 @@ function makeInlineEditorHarness(ctor: any, value: unknown) {
   }
 }
 
-function attachHostElement(editor: any, tagName: 'input'): HTMLInputElement
-function attachHostElement(editor: any, tagName: 'select'): HTMLSelectElement
-function attachHostElement(editor: any, tagName: 'input' | 'select') {
+function attachHostElement(editor: InlineEditorBase, tagName: 'input'): HTMLInputElement
+function attachHostElement(editor: InlineEditorBase, tagName: 'select'): HTMLSelectElement
+function attachHostElement(editor: InlineEditorBase, tagName: 'input' | 'select') {
   const host = document.createElement('div')
   const element = document.createElement(tagName)
 
@@ -126,6 +147,17 @@ describe('DateSortHeader', () => {
     expect(dateSortState.toggle).toHaveBeenCalledTimes(1)
     expect(onParentClick).not.toHaveBeenCalled()
     expect(wrapper.get('path').attributes('d')).not.toBe(initialPath)
+  })
+
+  it('centre le header quand align vaut center', () => {
+    const wrapper = mount(DateSortHeader, {
+      props: {
+        align: 'center',
+      },
+    })
+
+    expect(wrapper.get('button').classes()).toContain('justify-center')
+    expect(wrapper.get('button').classes()).toContain('text-center')
   })
 })
 
@@ -201,7 +233,7 @@ describe('SelectEditor', () => {
 describe('inlineEditors', () => {
   it('createTextEditor et createStatusEditor transforment les valeurs nulles en chaîne vide', () => {
     const nullTextHarness = makeInlineEditorHarness(createTextEditor(), null)
-    const undefinedSelectHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), undefined)
+    const undefinedSelectHarness = makeInlineEditorHarness(createStatusEditor(statusOptions), undefined)
 
     expect(nullTextHarness.vnode.props.value).toBe('')
     expect(undefinedSelectHarness.vnode.props.value).toBe('')
@@ -209,7 +241,7 @@ describe('inlineEditors', () => {
 
   it('garde le rendu et le detach quand aucun enfant n’est monté', () => {
     const inputHarness = makeInlineEditorHarness(createTextEditor(), 'draft')
-    const selectHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), 'Inactive')
+    const selectHarness = makeInlineEditorHarness(createStatusEditor(statusOptions), 'Inactive')
 
     expect(() => inputHarness.editor.componentDidRender()).not.toThrow()
     expect(() => inputHarness.editor.beforeDisconnect?.()).not.toThrow()
@@ -239,7 +271,7 @@ describe('inlineEditors', () => {
     expect(enterHarness.editor.element).toBeNull()
   })
 
-  it('createTextEditor gère Tab, Escape et le cycle de vie', () => {
+  it('createTextEditor enregistre avec Tab puis navigue, et gère Escape', () => {
     const tabHarness = makeInlineEditorHarness(createTextEditor(), 'draft')
     tabHarness.vnode.props.onInput({ target: { value: 'next' } })
     tabHarness.vnode.props.onKeyDown({ key: 'Tab', preventDefault: vi.fn() })
@@ -337,13 +369,13 @@ describe('inlineEditors', () => {
   })
 
   it('createStatusEditor gère Escape, blur et le cycle de vie', () => {
-    const escapeHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), 'Inactive')
+    const escapeHarness = makeInlineEditorHarness(createStatusEditor(statusOptions), 'Inactive')
     escapeHarness.vnode.props.onKeyDown({ key: 'Escape', preventDefault: vi.fn() })
 
     expect(escapeHarness.save).not.toHaveBeenCalled()
     expect(escapeHarness.close).toHaveBeenCalledWith(false)
 
-    const blurHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), 'Inactive')
+    const blurHarness = makeInlineEditorHarness(createStatusEditor(statusOptions), 'Inactive')
     blurHarness.vnode.props.onBlur()
 
     expect(blurHarness.save).not.toHaveBeenCalled()
@@ -351,7 +383,7 @@ describe('inlineEditors', () => {
   })
 
   it('createStatusEditor enregistre immédiatement au change (la confirmation est gérée par DataGrid)', async () => {
-    const changeHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), 'Inactive')
+    const changeHarness = makeInlineEditorHarness(createStatusEditor(statusOptions), 'Inactive')
     const changeSelect = attachHostElement(changeHarness.editor, 'select')
     const focus = vi.spyOn(changeSelect, 'focus')
     const blur = vi.spyOn(changeSelect, 'blur')
@@ -370,7 +402,7 @@ describe('inlineEditors', () => {
   })
 
   it('createStatusEditor ignore les touches non Escape et ne rejoue pas commit ou cancel après fermeture', () => {
-    const keyHarness = makeInlineEditorHarness(createStatusEditor(['Active', 'Inactive']), undefined)
+    const keyHarness = makeInlineEditorHarness(createStatusEditor(statusOptions), undefined)
     const preventDefault = vi.fn()
 
     expect(keyHarness.vnode.props.value).toBe('')

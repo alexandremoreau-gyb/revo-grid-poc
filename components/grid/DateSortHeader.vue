@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { useDateSort } from '~/composables/useDateSort'
+import { useDateSort } from '~/composables/grid/useDateSort'
+
+withDefaults(defineProps<{ align?: 'start' | 'center' }>(), {
+  align: 'start',
+})
 
 const { sortDir, toggle } = useDateSort()
 </script>
@@ -7,6 +11,7 @@ const { sortDir, toggle } = useDateSort()
 <template>
   <button
     class="flex h-full w-full items-center gap-1 px-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+    :class="align === 'center' ? 'justify-center text-center' : 'justify-start text-left'"
     type="button"
     @click.stop="toggle"
   >

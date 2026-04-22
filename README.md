@@ -1,141 +1,341 @@
 # revo-grid-poc
 
-POC Nuxt 4 + RevoGrid v4 — démo crypto grid 50k lignes avec tri, filtres, dark mode et colonnes responsives.
+POC Nuxt 4 + RevoGrid v4 pour valider une grille de données riche, performante et réutilisable dans un contexte OTC Flow.
 
-## Architecture RevoGrid
+Le scope principal actuel est volontairement réduit :
+
+- page dossiers
+- page utilisateurs
+- composants de tableau
+- édition inline avec confirmation
+- recherche, filtres, pagination, tri date dossier
+
+La page crypto `/demo` existe encore comme laboratoire historique, mais elle n'est pas le centre de l'architecture métier.
+
+## Vue D'ensemble
+
+```
+                         ┌──────────────────────────┐
+                         │ pages/index.vue          │
+                         │ pages/users.vue          │
+                         └────────────┬─────────────┘
+                                      │
+                                      ▼
+                         ┌──────────────────────────┐
+                         │ domains/*                │
+                         │ columns, rows, filters   │
+                         │ editors, constants       │
+                         └────────────┬─────────────┘
+                                      │
+                                      ▼
+                         ┌──────────────────────────┐
+                         │ components/layout        │
+                         │ TablePage                │
+                         │ Header / Toolbar         │
+                         └────────────┬─────────────┘
+                                      │
+                                      ▼
+                         ┌──────────────────────────┐
+                         │ components/grid          │
+                         │ DataGrid + renderers     │
+                         │ pagination + filters UI  │
+                         └────────────┬─────────────┘
+                                      │
+                                      ▼
+                         ┌──────────────────────────┐
+                         │ @revolist/vue3-datagrid  │
+                         │ virtualisation, édition  │
+                         │ tri, filtre, scroll      │
+                         └──────────────────────────┘
+```
+
+## Arborescence Utile
 
 ```
 revo-grid-poc/
+├── pages/
+│   ├── index.vue                  # Tableau dossiers
+│   ├── users.vue                  # Tableau utilisateurs
+│   └── demo.vue                   # Laboratoire crypto hors scope métier principal
 │
-├── components/grid/
-│   ├── DataGrid.vue          # Wrapper principal RevoGrid.
-│   │                         # Gère : colonnes normalisées, renderers custom,
-│   │                         # tri, filtres, édition inline, sélection de lignes,
-│   │                         # hauteur responsive (height:100% dans flex-1),
-│   │                         # et filtrage des colonnes par priorité responsive.
+├── domains/
+│   ├── dossiers/
+│   │   ├── columns.ts             # Colonnes RevoGrid du domaine dossiers
+│   │   ├── constants.ts           # Options de filtres / statuts / risques
+│   │   ├── editors.ts             # Editeurs custom du domaine
+│   │   ├── mockRows.ts            # Données mock dossiers
+│   │   └── useDossiersTable.ts    # Assemblage rows + filtres + tri
 │   │
-│   ├── GridCellRenderer.vue  # Renderer Vue injecté dans les cellules via VGridVueTemplate.
-│   │                         # Reçoit `variant` en prop et switche sur le bon affichage :
-│   │                         # price, trend, progress, tags, bool, symbol, etc.
+│   └── users/
+│       ├── columns.ts
+│       ├── constants.ts
+│       ├── mockRows.ts
+│       └── useUsersTable.ts
+│
+├── components/
+│   ├── layout/
+│   │   ├── TablePage.vue          # Layout générique d'une page tableau
+│   │   ├── TablePageHeader.vue
+│   │   └── TablePageToolbar.vue
 │   │
-│   ├── GridToolbar.vue       # Barre d'outils au-dessus du grid (recherche, filtres UI).
-│   │                         # Émet des events vers la page parente, ne touche pas au grid.
+│   ├── grid/
+│   │   ├── DataGrid.vue           # Wrapper Vue autour de RevoGrid
+│   │   ├── GridCellRenderer.vue   # Route vers les composants de cellule
+│   │   ├── Grid*Cell.vue          # Cellules spécialisées
+│   │   ├── GridPagination.vue
+│   │   ├── MultiSelect.vue
+│   │   └── ClearFiltersButton.vue
 │   │
-│   └── GridPagination.vue    # Contrôles de pagination découplés du DataGrid.
-│                             # Expose v-model:page / v-model:pageSize + emits métier.
+│   ├── ui/
+│   │   ├── ConfirmModal.vue
+│   │   ├── AppToast.vue
+│   │   └── GridTooltip.vue
+│   │
+│   └── navigation/
+│       └── NavBar.vue
 │
 ├── composables/
-│   ├── useContainerWidth.ts  # ResizeObserver sur un élément DOM.
-│   │                         # Retourne `width` (ref réactive) — utilisé par DataGrid
-│   │                         # pour adapter le nombre de colonnes visibles sans
-│   │                         # dépendre de window.innerWidth (réagit au collapse sidebar).
+│   ├── app/                       # Etat global UI simple
+│   │   ├── useConfirmModal.ts
+│   │   ├── useSidebar.ts
+│   │   ├── useTheme.ts
+│   │   └── useToast.ts
 │   │
-│   ├── useTheme.ts           # Toggle dark/light. useState pour partage global entre
-│   │                         # NavBar et DataGrid (:theme="gridTheme" sur RevoGrid).
-│   │
-│   └── useSidebar.ts         # État collapsed/expanded de la sidebar. useState global.
+│   └── grid/                      # Logique réutilisable des tableaux
+│       ├── useGridPendingEdits.ts
+│       ├── useRevoGridColumns.ts
+│       ├── useTableFilters.ts
+│       ├── useTablePageRows.ts
+│       └── useTablePageEditing.ts
 │
-├── types/grid.ts             # Types partagés : ColumnDef (+ colPriority responsive),
-│                             # RowData, GridFilterState, GridSortState.
+├── utils/grid/
+│   ├── cellFormatters.ts          # Formatage pur
+│   ├── cellStyles.ts              # Classes CSS métier
+│   ├── inlineEditors.ts           # Factories d'éditeurs RevoGrid
+│   ├── editorHelpers.ts           # Helpers clavier/focus/styles éditeurs
+│   └── editCommitIntent.ts        # Intention Enter pour ouvrir la confirmation
 │
-└── data/mock/
-    └── cryptoData.ts         # Générateur déterministe de 50k lignes crypto + définition
-                              # des colonnes avec leur colPriority (1→4).
-                              # colPriority détermine à quelle largeur la colonne apparaît :
-                              #   1 = toujours | 2 = ≥500px | 3 = ≥750px | 4 = ≥1050px
+├── types/grid.ts                  # Contrat partagé colonnes, rows, edits
+└── docs/table.md                  # Doc détaillée du tableau
 ```
 
-### Responsive colonnes — logique
+## Qui Fait Quoi
 
-`DataGrid.vue` observe sa propre largeur via `useContainerWidth` et calcule `visiblePriority` :
+### `domains/*`
 
-| Largeur conteneur | Colonnes visibles | Priorités affichées |
-|-------------------|-------------------|---------------------|
-| < 500 px          | 4 (rank, symbol, price, 24h%) | 1 |
-| 500 – 749 px      | 6 (+ name, market cap)        | 1–2 |
-| 750 – 1049 px     | 9 (+ 7d%, volume, score)      | 1–3 |
-| ≥ 1050 px         | 16 (toutes)                   | 1–4 |
+Un domaine décrit ses données et son usage du tableau.
 
-### Theming RevoGrid
+Il contient :
 
-Les variables CSS `--revo-grid-*` sont surchargées globalement dans `assets/css/main.css`
-via les sélecteurs `revo-grid[theme="compact"]` et `revo-grid[theme="darkCompact"]`.
-Le thème est calculé depuis `useTheme` : `isDark ? 'darkCompact' : 'compact'`.
+- les colonnes affichées
+- les constantes métier des filtres
+- les mocks
+- les éditeurs si le domaine est éditable
+- le composable qui assemble rows, filtres et options exposées à la page
 
----
+La page ne fabrique donc pas les données elle-même. Elle consomme un composable de domaine.
 
+### `TablePage.vue`
 
+`TablePage` est le layout commun des pages tableau.
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Il gère :
 
-## Setup
+- header
+- barre de recherche
+- slot de filtres
+- bouton de validation des edits pending
+- pagination
+- montage de `DataGrid`
+- modale de confirmation
+- toast de succès
 
-Make sure to install dependencies:
+Il ne connaît pas le métier dossiers ou utilisateurs.
+
+### `DataGrid.vue`
+
+`DataGrid` est l'adaptateur entre notre API Vue et RevoGrid.
+
+Il gère :
+
+- transformation des `ColumnDef` en colonnes RevoGrid
+- injection des renderers Vue dans les cellules
+- source isolée pour éviter les mutations directes sur les rows parent
+- cycle d'édition pending
+- relais des événements RevoGrid vers des emits Vue lisibles
+
+### `GridCellRenderer.vue`
+
+`GridCellRenderer` choisit le bon rendu selon `variant`.
+
+Les cellules spécialisées sont sorties dans des composants dédiés :
+
+- `GridEmailCell`
+- `GridCompanyCell`
+- `GridProgressCell`
+- `GridTagsCell`
+- `GridBoolCell`
+- `GridTrendCell`
+- `GridReferenceCell`
+- `GridTagBadge`
+
+L'objectif est que le renderer orchestre, sans redevenir un gros fichier qui contient tous les styles.
+
+### `utils/grid`
+
+Ce dossier contient les fonctions sans état Vue fort :
+
+- formatage de valeurs
+- mapping couleur/style
+- factories d'éditeurs
+- helpers clavier/focus
+- intention de commit Enter
+
+Si ce n'est pas un composant et que ce n'est pas un état réactif partagé, c'est souvent ici.
+
+## Flux D'Une Page Tableau
+
+```
+┌──────────────┐
+│ page Vue     │
+│ index/users  │
+└──────┬───────┘
+       │ appelle useDossiersTable/useUsersTable
+       ▼
+┌──────────────┐
+│ domain       │
+│ rows/filters │
+│ columns      │
+└──────┬───────┘
+       │ passe columns + rows + filtres UI
+       ▼
+┌──────────────┐
+│ TablePage    │
+│ search       │
+│ pagination   │
+│ validation   │
+└──────┬───────┘
+       │ passe pagedRows + columns
+       ▼
+┌──────────────┐
+│ DataGrid     │
+│ Revo wrapper │
+└──────┬───────┘
+       │ passe source + revoColumns
+       ▼
+┌──────────────┐
+│ RevoGrid     │
+│ grille réelle│
+└──────────────┘
+```
+
+## Flux D'Edition
+
+```
+Utilisateur édite une cellule
+          │
+          ▼
+RevoGrid ouvre un éditeur custom
+          │
+          ▼
+Enter / Tab / blur / select change
+          │
+          ▼
+afteredit RevoGrid
+          │
+          ▼
+useGridPendingEdits stocke l'edit pending
+          │
+          ├── Enter              → confirmation immédiate
+          ├── clic hors tableau  → confirmation
+          ├── bouton Valider     → confirmation
+          └── changement de ligne→ confirmation ligne précédente
+          │
+          ▼
+ConfirmModal
+          │
+          ├── accepté → emit cell-edit → TablePage applique la valeur + toast
+          └── refusé  → reset depuis rows parent + remount RevoGrid
+```
+
+Ce fonctionnement évite que RevoGrid mute définitivement les données parent avant confirmation.
+
+## RevoGrid En Bref
+
+RevoGrid apporte surtout :
+
+- virtualisation performante
+- rendu cellule custom via templates Vue
+- édition inline
+- tri et filtres natifs
+- comportement de vraie grille plutôt que simple table HTML
+
+Dans ce projet, on l'encapsule volontairement derrière `DataGrid.vue` pour éviter que toute l'application dépende directement de son API.
+
+Le contrat côté app reste simple :
+
+```ts
+columns: ColumnDef[]
+rows: RowData[]
+editable?: boolean
+editors?: Record<string, EditorCtr>
+```
+
+## Tests Unitaires
+
+La commande principale couvre les composants grid :
 
 ```bash
-# npm
+npm test
+```
+
+Elle lance `vitest run --coverage tests/unit/components/grid`.
+
+Objectif actuel sur les fichiers testés :
+
+- 100% statements
+- 100% branches
+- 100% functions
+- 100% lines
+
+Les specs importantes :
+
+- `DataGrid.spec.ts` : wrapper RevoGrid, colonnes, source isolée, pending edits
+- `GridEditors.spec.ts` : éditeurs inline, Enter, Tab, Escape, blur, select
+- `GridCellRenderer.spec.ts` : variantes de cellules
+- `GridPagination.spec.ts` : pagination et page size
+- `MultiSelect.spec.ts` : filtres
+- `GridToolbar.spec.ts` : toolbar et reset filters
+- `GridHeaderRenderer.spec.ts` : rendu header
+
+Les tests ne remplacent pas la vérification manuelle du comportement RevoGrid, surtout pour l'édition clavier.
+
+## Commandes
+
+Installer :
+
+```bash
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+Développement :
 
 ```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
-
-Build the application for production:
+Tests grid + coverage :
 
 ```bash
-# npm
+npm run test
+```
+
+Build :
+
+```bash
 npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
 ```
 
-Locally preview production build:
+## Doc Complémentaire
 
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+Voir [docs/table.md](docs/table.md) pour le détail du fonctionnement du tableau, des composants RevoGrid, du cycle d'édition et des tests.

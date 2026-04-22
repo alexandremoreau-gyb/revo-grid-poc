@@ -18,6 +18,8 @@ export type GridColumnVariant =
   | 'dossier-status'
   | 'risk'
   | 'reference'
+  | 'user-role'
+  | 'user-status'
   // variants crypto (conservés pour /demo)
   | 'symbol'
   | 'price'
@@ -37,6 +39,7 @@ export interface ColumnDef extends Partial<ColumnRegular> {
   editable?: boolean
   variant?: GridColumnVariant
   centered?: boolean
+  headerAlign?: 'start' | 'center'
   /**
    * Priorité d'affichage responsive (1 = toujours visible, 4 = large écran uniquement).
    * Omis = toujours visible (équivalent à 1).
@@ -52,6 +55,12 @@ export interface ColumnDef extends Partial<ColumnRegular> {
 
 export interface RowData {
   [key: string]: unknown
+}
+
+export interface CellEditPayload {
+  rowIndex: number
+  prop: string
+  val: unknown
 }
 
 export type GridFilterState = Record<string, FilterCollectionItem>

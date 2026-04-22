@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useConfirmModal } from '~/composables/useConfirmModal'
+import { useConfirmModal } from '~/composables/app/useConfirmModal'
 
 describe('useConfirmModal', () => {
   beforeEach(() => {

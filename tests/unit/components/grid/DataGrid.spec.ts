@@ -1,14 +1,14 @@
+import fr from '~/i18n/fr'
+import en from '~/i18n/en'
 import { createI18n } from 'vue-i18n'
 import { mount } from '@vue/test-utils'
 import VGrid from '@revolist/vue3-datagrid'
-import { describe, expect, it, vi } from 'vitest'
 import DataGrid from '~/components/grid/DataGrid.vue'
-import { useConfirmModal } from '~/composables/useConfirmModal'
-import fr from '~/i18n/fr'
-import en from '~/i18n/en'
 import type { ColumnDef, RowData } from '~/types/grid'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useConfirmModal } from '~/composables/app/useConfirmModal'
 
-vi.mock('~/composables/useConfirmModal', () => ({
+vi.mock('~/composables/app/useConfirmModal', () => ({
   useConfirmModal: vi.fn(),
 }))
 
@@ -60,7 +60,62 @@ const ClientOnlyStub = { template: '<slot />' }
 
 const dateEditor = function DateEditor() {}
 
-function mountGrid(props: Record<string, unknown> = {}) {
+type GridColumn = {
+  prop?: string
+  name?: string
+  cellTemplate?: unknown
+  columnTemplate?: unknown
+  editor?: unknown
+  readonly?: boolean
+}
+
+type GridVmLike = {
+  vm: {
+    $attrs: {
+      columns?: unknown
+      source?: unknown
+      editors?: unknown
+      readonly?: unknown
+    }
+    $props: {
+      columns?: unknown
+      source?: unknown
+      editors?: unknown
+      readonly?: unknown
+    }
+  }
+}
+
+type MountGridProps = Partial<{
+  columns: ColumnDef[]
+  rows: RowData[]
+  loading: boolean
+  height: number | string
+  selectable: boolean
+  editable: boolean
+  enableSorting: boolean
+  enableColumnFilters: boolean
+  framed: boolean
+  editors: object
+}>
+
+function getGridColumns(grid: GridVmLike): GridColumn[] {
+  return (grid.vm.$attrs.columns ?? grid.vm.$props.columns ?? []) as GridColumn[]
+}
+
+function getGridSource(grid: GridVmLike): RowData[] {
+  return (grid.vm.$attrs.source ?? grid.vm.$props.source ?? []) as RowData[]
+}
+
+function hasProp(prop: string) {
+  return (column: GridColumn) => column.prop === prop
+}
+
+function flushAsync() {
+  return new Promise<void>(resolve => setTimeout(resolve, 0))
+}
+
+function mountGrid(props: MountGridProps = {}) {
   return mount(DataGrid, {
     global: {
       plugins: [i18n],
@@ -75,6 +130,14 @@ function mountGrid(props: Record<string, unknown> = {}) {
 }
 
 describe('DataGrid', () => {
+  beforeEach(() => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1200,
+    })
+  })
+
   it('affiche les états chargement et vide sans rendre le tableau', () => {
     // Arrange / Act
     const loadingWrapper = mountGrid({
@@ -112,9 +175,9 @@ describe('DataGrid', () => {
 
     // Assert
     expect(grid.exists()).toBe(true)
-    const cols = (grid.vm.$attrs.columns ?? grid.vm.$props.columns) as any[]
-    const symbolCol = cols.find((c: any) => c.prop === 'symbol')
-    const priceCol = cols.find((c: any) => c.prop === 'price')
+    const cols = getGridColumns(grid)
+    const symbolCol = cols.find(hasProp('symbol'))
+    const priceCol = cols.find(hasProp('price'))
     expect(typeof symbolCol?.cellTemplate).toBe('function')
     expect(typeof priceCol?.cellTemplate).toBe('function')
   })
@@ -160,11 +223,11 @@ describe('DataGrid', () => {
     // Assert
     expect(grid.exists()).toBe(true)
 
-    const cols = (grid.vm.$attrs.columns ?? grid.vm.$props.columns) as any[]
-    const centeredVariantCol = cols.find((c: any) => c.prop === 'centeredVariant')
-    const centeredTextCol = cols.find((c: any) => c.prop === 'centeredText')
-    const priceCol = cols.find((c: any) => c.prop === 'price')
-    const symbolCol = cols.find((c: any) => c.prop === 'symbol')
+    const cols = getGridColumns(grid)
+    const centeredVariantCol = cols.find(hasProp('centeredVariant'))
+    const centeredTextCol = cols.find(hasProp('centeredText'))
+    const priceCol = cols.find(hasProp('price'))
+    const symbolCol = cols.find(hasProp('symbol'))
 
     expect(centeredVariantCol?.name).toBe('Centered Variant')
     expect(centeredTextCol?.name).toBe('Centered Text')
@@ -174,6 +237,53 @@ describe('DataGrid', () => {
     expect(typeof symbolCol?.cellTemplate).toBe('function')
     expect(centeredVariantCol?.cellTemplate).not.toBe(priceCol?.cellTemplate)
     expect(centeredTextCol?.cellTemplate).not.toBe(symbolCol?.cellTemplate)
+  })
+
+  it('filtre les colonnes selon colPriority et la largeur viewport', async () => {
+    // Arrange
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 640,
+    })
+
+    const wrapper = mountGrid({
+      columns: [
+        { prop: 'name', name: 'Name', colPriority: 1 },
+        { prop: 'email', name: 'Email', colPriority: 2 },
+        { prop: 'company', name: 'Company', colPriority: 3 },
+        { prop: 'createdAt', name: 'Created at', colPriority: 4 },
+      ] as ColumnDef[],
+      rows: [
+        {
+          name: 'Alexandre',
+          email: 'alex@example.test',
+          company: 'COPRIM',
+          createdAt: '2026-04-22',
+        },
+      ] as RowData[],
+    })
+
+    // Act
+    const grid = wrapper.findComponent(VGrid)
+    await wrapper.vm.$nextTick()
+
+    // Assert
+    let cols = getGridColumns(grid)
+    expect(cols.map(col => col.prop)).toEqual(['name', 'email'])
+
+    // Act
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 900,
+    })
+    window.dispatchEvent(new Event('resize'))
+    await wrapper.vm.$nextTick()
+
+    // Assert
+    cols = getGridColumns(grid)
+    expect(cols.map(col => col.prop)).toEqual(['name', 'email', 'company'])
   })
 
   it('passe les lignes dans source et résout les noms de colonnes de secours', () => {
@@ -191,11 +301,34 @@ describe('DataGrid', () => {
 
     // Assert
     expect(grid.exists()).toBe(true)
-    const cols = (grid.vm.$attrs.columns ?? grid.vm.$props.columns) as any[]
+    const cols = getGridColumns(grid)
     expect(cols[0].name).toBe('Slug')
     expect(cols[1].name).toBe('value')
-    const source = (grid.vm.$attrs.source ?? grid.vm.$props.source) as any[]
+    const source = getGridSource(grid)
     expect(source).toHaveLength(1)
+  })
+
+  it("ne marque pas chaque colonne readonly quand l'ensemble du tableau est en lecture seule", () => {
+    // Arrange
+    const wrapper = mountGrid({
+      editable: false,
+      columns: [
+        { prop: 'id', name: 'ID', editable: false },
+        { prop: 'name', name: 'Name', editable: false },
+      ] as ColumnDef[],
+      rows: [{ id: 1, name: 'Sophie' }] as RowData[],
+    })
+
+    // Act
+    const grid = wrapper.findComponent(VGrid)
+
+    // Assert
+    const cols = getGridColumns(grid)
+    expect(grid.vm.$attrs.readonly ?? grid.vm.$props.readonly).toBe(true)
+    expect(cols).toEqual([
+      expect.not.objectContaining({ readonly: true }),
+      expect.not.objectContaining({ readonly: true }),
+    ])
   })
 
   it("isole la source envoyée à VGrid pour éviter qu'un edit annulé ne mute rows", async () => {
@@ -232,15 +365,14 @@ describe('DataGrid', () => {
         val: 99999,
       },
     })
-
-    await new Promise(r => setTimeout(r, 0))
+    await (wrapper.vm as unknown as { confirmPendingRow: () => Promise<void> }).confirmPendingRow()
 
     // Assert — l'annulation ne mute pas rows
     expect(mockConfirm).toHaveBeenCalled()
-    expect(rows[0].price).toBe(42500)
+    expect(rows[0]?.price).toBe(42500)
   })
 
-  it('relaie afteredit vers cell-edit quand la confirmation est acceptée', async () => {
+  it('relaie les edits pending vers cell-edit quand la confirmation est acceptée', async () => {
     // Arrange
     const mockConfirm = vi.fn().mockResolvedValue(true)
     ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -260,10 +392,15 @@ describe('DataGrid', () => {
 
     // Act
     grid.vm.$emit('afteredit', payload)
-    expect(mockConfirm).toHaveBeenCalled()
-    await new Promise(r => setTimeout(r, 0))
+    await flushAsync()
+
+    expect(mockConfirm).not.toHaveBeenCalled()
+    expect(wrapper.emitted('pending-change')?.at(-1)).toEqual([true])
+
+    await (wrapper.vm as unknown as { confirmPendingRow: () => Promise<void> }).confirmPendingRow()
 
     // Assert
+    expect(mockConfirm).toHaveBeenCalled()
     expect(wrapper.emitted('cell-edit')?.[0]).toEqual([
       {
         rowIndex: 1,
@@ -273,7 +410,7 @@ describe('DataGrid', () => {
     ])
   })
 
-  it("n'émet pas cell-edit quand la confirmation est refusée", async () => {
+  it("n'émet pas cell-edit quand la confirmation pending est refusée", async () => {
     // Arrange
     const mockConfirm = vi.fn().mockResolvedValue(false)
     ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -293,11 +430,65 @@ describe('DataGrid', () => {
 
     // Act
     grid.vm.$emit('afteredit', payload)
-    expect(mockConfirm).toHaveBeenCalled()
-    await new Promise(r => setTimeout(r, 0))
+    expect(mockConfirm).not.toHaveBeenCalled()
+    await (wrapper.vm as unknown as { confirmPendingRow: () => Promise<void> }).confirmPendingRow()
 
     // Assert
+    expect(mockConfirm).toHaveBeenCalled()
     expect(wrapper.emitted('cell-edit')).toBeUndefined()
+  })
+
+  it('confirme ensemble plusieurs edits de la même ligne', async () => {
+    // Arrange
+    const mockConfirm = vi.fn().mockResolvedValue(true)
+    ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
+      visible: { value: false },
+      confirm: mockConfirm,
+      _resolve: vi.fn(),
+    })
+    const wrapper = mountGrid()
+    const grid = wrapper.findComponent(VGrid)
+
+    // Act
+    grid.vm.$emit('afteredit', {
+      detail: {
+        rowIndex: 0,
+        prop: 'symbol',
+        val: 'BTC-EDIT',
+      },
+    })
+    grid.vm.$emit('afteredit', {
+      detail: {
+        rowIndex: 0,
+        prop: 'price',
+        val: 43000,
+      },
+    })
+    await flushAsync()
+
+    expect(mockConfirm).not.toHaveBeenCalled()
+
+    await (wrapper.vm as unknown as { confirmPendingRow: () => Promise<void> }).confirmPendingRow()
+
+    // Assert
+    expect(mockConfirm).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('cell-edit')).toEqual([
+      [
+        {
+          rowIndex: 0,
+          prop: 'symbol',
+          val: 'BTC-EDIT',
+        },
+      ],
+      [
+        {
+          rowIndex: 0,
+          prop: 'price',
+          val: 43000,
+        },
+      ],
+    ])
+    expect(wrapper.emitted('pending-change')?.at(-1)).toEqual([false])
   })
 
   it('relaie les events de tri et de filtre vers les emits métier', () => {
@@ -367,9 +558,9 @@ describe('DataGrid', () => {
     expect(grid.exists()).toBe(true)
     expect((grid.vm.$attrs.editors ?? grid.vm.$props.editors)).toStrictEqual(editors)
 
-    const cols = (grid.vm.$attrs.columns ?? grid.vm.$props.columns) as any[]
-    const dateCol = cols.find((c: any) => c.prop === 'date')
-    const statusCol = cols.find((c: any) => c.prop === 'status')
+    const cols = getGridColumns(grid)
+    const dateCol = cols.find(hasProp('date'))
+    const statusCol = cols.find(hasProp('status'))
 
     expect(grid.vm.$attrs.readonly ?? grid.vm.$props.readonly).toBe(false)
     expect(dateCol?.readonly).toBe(false)

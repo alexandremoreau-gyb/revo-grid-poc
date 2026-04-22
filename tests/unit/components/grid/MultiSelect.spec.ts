@@ -1,12 +1,21 @@
 import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
+import MultiSelect from '~/components/grid/MultiSelect.vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import MultiSelect from '~/components/grid/MultiSelect.vue'
-
 const options = ['Alpha', 'Beta', 'Gamma']
+type MultiSelectProps = Partial<{
+  modelValue: string[]
+  options: string[]
+  placeholder: string
+}>
 
-const mountedWrappers: Array<ReturnType<typeof mount>> = []
+type MountedWrapper = ReturnType<typeof mount>
+type ClassListWrapper = {
+  classes: () => string[]
+}
+
+const mountedWrappers: MountedWrapper[] = []
 
 afterEach(() => {
   while (mountedWrappers.length) {
@@ -14,7 +23,7 @@ afterEach(() => {
   }
 })
 
-function mountMultiSelect(props: Record<string, unknown> = {}) {
+function mountMultiSelect(props: MultiSelectProps = {}): MountedWrapper {
   const wrapper = mount(MultiSelect, {
     props: {
       modelValue: [],
@@ -27,6 +36,17 @@ function mountMultiSelect(props: Record<string, unknown> = {}) {
   return wrapper
 }
 
+function expectButtonClasses(button: ClassListWrapper, ...classNames: string[]) {
+  for (const className of classNames) {
+    expect(button.classes()).toContain(className)
+  }
+}
+
+async function openMultiSelect(wrapper: MountedWrapper) {
+  await wrapper.get('button').trigger('click')
+  await nextTick()
+}
+
 describe('MultiSelect', () => {
   it('affiche le libellé par défaut et le style inactif quand rien n’est sélectionné', () => {
     const wrapper = mountMultiSelect()
@@ -34,9 +54,12 @@ describe('MultiSelect', () => {
     const button = wrapper.get('button')
 
     expect(button.text()).toContain('Tous')
-    expect(button.attributes('class')).toContain('border-[var(--color-border)]')
-    expect(button.attributes('class')).toContain('bg-[var(--color-surface-strong)]')
-    expect(button.attributes('class')).toContain('text-[var(--color-text)]')
+    expectButtonClasses(
+      button,
+      'border-[var(--color-border)]',
+      'bg-[var(--color-surface-strong)]',
+      'text-[var(--color-text)]',
+    )
     expect(button.find('svg').exists()).toBe(true)
   })
 
@@ -56,9 +79,12 @@ describe('MultiSelect', () => {
     const button = wrapper.get('button')
 
     expect(button.text()).toContain('Alpha')
-    expect(button.attributes('class')).toContain('border-[var(--color-primary)]')
-    expect(button.attributes('class')).toContain('bg-[var(--color-primary)]/8')
-    expect(button.attributes('class')).toContain('text-[var(--color-primary)]')
+    expectButtonClasses(
+      button,
+      'border-[var(--color-primary)]',
+      'bg-[var(--color-primary)]/8',
+      'text-[var(--color-primary)]',
+    )
     expect(wrapper.findAll('button').some(item => item.classes().includes('ml-0.5'))).toBe(true)
   })
 
@@ -75,8 +101,7 @@ describe('MultiSelect', () => {
 
     expect(wrapper.findAll('label')).toHaveLength(0)
 
-    await wrapper.get('button').trigger('click')
-    await nextTick()
+    await openMultiSelect(wrapper)
 
     const labels = wrapper.findAll('label')
 
@@ -87,8 +112,7 @@ describe('MultiSelect', () => {
   it('émet les sélections ajoutées et retirées depuis les cases à cocher', async () => {
     const wrapper = mountMultiSelect()
 
-    await wrapper.get('button').trigger('click')
-    await nextTick()
+    await openMultiSelect(wrapper)
 
     const firstCheckbox = wrapper.find<HTMLInputElement>('input[type="checkbox"]')
 
@@ -123,8 +147,7 @@ describe('MultiSelect', () => {
   it('referme la liste lorsqu’un clic extérieur survient', async () => {
     const wrapper = mountMultiSelect()
 
-    await wrapper.get('button').trigger('click')
-    await nextTick()
+    await openMultiSelect(wrapper)
 
     expect(wrapper.findAll('label')).toHaveLength(options.length)
 
@@ -137,8 +160,7 @@ describe('MultiSelect', () => {
   it('conserve la liste ouverte lorsqu’un clic document vient du composant', async () => {
     const wrapper = mountMultiSelect()
 
-    await wrapper.get('button').trigger('click')
-    await nextTick()
+    await openMultiSelect(wrapper)
 
     wrapper.element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await nextTick()
@@ -155,18 +177,14 @@ describe('MultiSelect', () => {
       return EventTarget.prototype.addEventListener.call(document, type, listener, options)
     })
     const removeListenerSpy = vi.spyOn(document, 'removeEventListener')
-    const wrapper = mount(MultiSelect, {
-      props: {
-        modelValue: [],
-        options,
-      },
-    })
+    const wrapper = mountMultiSelect()
 
     wrapper.unmount()
     clickListener?.(new MouseEvent('click', { bubbles: true }))
     await nextTick()
 
-    expect(removeListenerSpy).toHaveBeenCalledWith('click', expect.any(Function))
+    expect(clickListener).toBeDefined()
+    expect(removeListenerSpy).toHaveBeenCalledWith('click', clickListener!)
 
     addListenerSpy.mockRestore()
     removeListenerSpy.mockRestore()

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useSidebar } from '~/composables/useSidebar'
+import { useSidebar } from '~/composables/app/useSidebar'
 
 const mobileOpen = ref(false)
 const { collapsed } = useSidebar()
@@ -10,6 +10,11 @@ const navItems = [
     href: '/',
     label: 'Suivi des dossiers',
     icon: `<rect x="2" y="3" width="12" height="2" rx="1"/><rect x="2" y="7" width="12" height="2" rx="1"/><rect x="2" y="11" width="8" height="2" rx="1"/>`,
+  },
+  {
+    href: '/users',
+    label: 'Utilisateurs',
+    icon: `<circle cx="8" cy="5" r="2.5"/><path stroke-linecap="round" d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5"/>`,
   },
   {
     href: '/demo',

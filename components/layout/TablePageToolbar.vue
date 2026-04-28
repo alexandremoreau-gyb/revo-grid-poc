@@ -36,6 +36,31 @@ defineEmits<{
 
     <slot name="filters" />
 
+    <!--
+      TODO Export Excel — à brancher :
+      - passer les filteredRows en prop (depuis useTablePageRows)
+      - utiliser xlsx ou exceljs pour générer le fichier
+      - n'exporter que les lignes visibles (filtrées + paginées ou toutes filtrées selon le besoin)
+    -->
+    <button
+      class="ml-auto flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)] py-1.5 pl-2.5 pr-2 text-sm text-[var(--color-text)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+      @click="() => console.log('coucou')"
+    >
+      <svg
+        class="h-3.5 w-3.5"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M8 2v8M5 7l3 3 3-3" />
+        <path d="M2 12h12" />
+      </svg>
+      Export Excel
+    </button>
+
     <Transition name="fade-slide">
       <button
         v-if="hasPendingEdits"

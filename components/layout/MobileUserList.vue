@@ -219,14 +219,14 @@ function cancelRow(rowId: number) {
         >
           <button
             data-row-confirm
-            class="flex-1 rounded bg-blue-500 px-3 py-1.5 text-sm font-medium text-white"
+            class="flex-1 rounded-lg border border-emerald-400 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:bg-emerald-900"
             @click="commitRow(row)"
           >
             Enregistrer
           </button>
           <button
             data-row-cancel
-            class="flex-1 rounded border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-muted)]"
+            class="flex-1 rounded-lg border border-rose-300 py-1.5 px-3 text-sm text-rose-500 transition hover:bg-rose-50"
             @click="cancelRow(row.id as number)"
           >
             Annuler

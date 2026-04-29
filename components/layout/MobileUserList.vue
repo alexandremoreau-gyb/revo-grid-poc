@@ -58,7 +58,7 @@ function startEdit(rowId: number, prop: EditableField) {
 }
 
 function commitEdit(row: RowData, prop: EditableField, val: string) {
-  ;(row as Record<string, unknown>)[prop] = val
+  row[prop] = val
   editingField.value = null
 }
 </script>
@@ -115,7 +115,6 @@ function commitEdit(row: RowData, prop: EditableField, val: string) {
               class="w-full rounded border border-blue-400 bg-white px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none"
               :value="String(row[prop] ?? '')"
               @change="commitEdit(row, prop, ($event.target as HTMLSelectElement).value)"
-              @blur="editingField = null"
             >
               <option v-for="opt in FIELD_OPTIONS[prop]" :key="opt" :value="opt">{{ opt }}</option>
             </select>
@@ -164,27 +163,6 @@ function commitEdit(row: RowData, prop: EditableField, val: string) {
 
         <span class="text-[var(--color-text-muted)]">Dernier accès</span>
         <span class="text-[var(--color-text)]">{{ formatDate(row.dernierAcces) }}</span>
-
-        <!-- Actions -->
-        <span class="text-[var(--color-text-muted)]">Action</span>
-        <div class="flex items-center gap-3">
-          <button class="text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
-            <svg class="size-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 10C3.732 5.943 7.523 3 12 3c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              <circle cx="12" cy="10" r="3" stroke-linecap="round" />
-            </svg>
-          </button>
-          <button class="text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
-            <svg class="size-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5l3 3M4 16l1-4 9.5-9.5a2.121 2.121 0 013 3L8 15.5 4 16z" />
-            </svg>
-          </button>
-          <button class="text-[var(--color-text-muted)] hover:text-red-500">
-            <svg class="size-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h8M9 7V5h2v2m-5 0v9a1 1 0 001 1h6a1 1 0 001-1V7H8z" />
-            </svg>
-          </button>
-        </div>
       </div>
     </div>
   </div>

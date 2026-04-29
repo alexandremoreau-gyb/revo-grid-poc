@@ -28,8 +28,12 @@ const FIELD_OPTIONS: Partial<Record<EditableField, readonly string[]>> = {
   societe: USER_COMPANIES,
 }
 
+// Active field being typed in right now
 const editingField = ref<{ rowId: number; prop: EditableField } | null>(null)
 const draftValue = ref<string>('')
+
+// Unsaved changes per row — only populated when value differs from original
+const pendingChanges = ref<Record<number, Partial<Record<EditableField, string>>>>({})
 
 const vFocus = {
   mounted(el: HTMLElement) {
@@ -54,17 +58,56 @@ function isEditing(rowId: number, prop: EditableField): boolean {
   return editingField.value?.rowId === rowId && editingField.value?.prop === prop
 }
 
-function startEdit(rowId: number, prop: EditableField, initialVal: string) {
-  editingField.value = { rowId, prop }
-  draftValue.value = initialVal
+function displayValue(row: RowData, prop: EditableField): string {
+  return pendingChanges.value[row.id as number]?.[prop] ?? String(row[prop] ?? '')
 }
 
-function confirmEdit(row: RowData, prop: EditableField) {
-  row[prop] = draftValue.value
+function hasPendingChanges(rowId: number): boolean {
+  const changes = pendingChanges.value[rowId]
+  return !!changes && Object.keys(changes).length > 0
+}
+
+function startEdit(rowId: number, prop: EditableField, originalVal: string) {
+  editingField.value = { rowId, prop }
+  // Resume from pending draft if any, otherwise start from original value
+  draftValue.value = pendingChanges.value[rowId]?.[prop] ?? originalVal
+}
+
+function storeEdit(row: RowData, prop: EditableField, val: string) {
+  const rowId = row.id as number
+  const originalVal = String(row[prop] ?? '')
+  if (val === originalVal) {
+    // Value reverted to original — remove from pending
+    if (pendingChanges.value[rowId]) {
+      delete pendingChanges.value[rowId]![prop]
+      if (Object.keys(pendingChanges.value[rowId]!).length === 0) {
+        delete pendingChanges.value[rowId]
+      }
+    }
+  } else {
+    if (!pendingChanges.value[rowId]) pendingChanges.value[rowId] = {}
+    pendingChanges.value[rowId]![prop] = val
+  }
   editingField.value = null
 }
 
-function cancelEdit() {
+function cancelFieldEdit() {
+  editingField.value = null
+}
+
+function commitRow(row: RowData) {
+  const rowId = row.id as number
+  const changes = pendingChanges.value[rowId]
+  if (changes) {
+    for (const [prop, val] of Object.entries(changes)) {
+      row[prop as EditableField] = val
+    }
+    delete pendingChanges.value[rowId]
+  }
+}
+
+function cancelRow(rowId: number) {
+  delete pendingChanges.value[rowId]
   editingField.value = null
 }
 </script>
@@ -109,86 +152,53 @@ function cancelEdit() {
       >
         <!-- Champs éditables -->
         <template v-for="prop in (['nom', 'prenom', 'email', 'role', 'statut', 'societe'] as const)" :key="prop">
-          <span class="self-start pt-1.5 text-[var(--color-text-muted)] capitalize">
+          <span class="self-center text-[var(--color-text-muted)] capitalize">
             {{ prop === 'societe' ? 'Société' : prop }}
           </span>
 
           <!-- Select -->
           <span v-if="FIELD_TYPE[prop] === 'select'">
-            <template v-if="isEditing(row.id as number, prop)">
-              <select
-                :data-edit-input="prop"
-                class="w-full rounded border border-blue-400 bg-white px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none"
-                :value="draftValue"
-                @change="draftValue = String(($event.target as HTMLSelectElement).value)"
-              >
-                <option v-for="opt in FIELD_OPTIONS[prop]" :key="opt" :value="opt">{{ opt }}</option>
-              </select>
-              <div class="mt-1.5 flex gap-1.5">
-                <button
-                  data-edit-confirm
-                  class="flex-1 rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white"
-                  @click="confirmEdit(row, prop)"
-                >
-                  Valider
-                </button>
-                <button
-                  data-edit-cancel
-                  class="flex-1 rounded border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-muted)]"
-                  @click="cancelEdit()"
-                >
-                  Annuler
-                </button>
-              </div>
-            </template>
+            <select
+              v-if="isEditing(row.id as number, prop)"
+              :data-edit-input="prop"
+              class="w-full rounded border border-blue-400 bg-white px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none"
+              :value="draftValue"
+              @change="storeEdit(row, prop, ($event.target as HTMLSelectElement).value)"
+            >
+              <option v-for="opt in FIELD_OPTIONS[prop]" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
             <button
               v-else
               :data-edit="prop"
-              class="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+              class="w-full rounded px-1 py-0.5 text-left hover:bg-[var(--color-surface)]"
+              :class="pendingChanges[row.id as number]?.[prop] !== undefined ? 'text-blue-600 font-medium' : 'text-[var(--color-text)]'"
               @click="startEdit(row.id as number, prop, String(row[prop] ?? ''))"
             >
-              <span class="flex-1">{{ row[prop] ?? '—' }}</span>
-              <svg class="size-3 shrink-0 text-[var(--color-text-muted)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5l3 3M4 16l1-4 9.5-9.5a2.121 2.121 0 013 3L8 15.5 4 16z" />
-              </svg>
+              {{ displayValue(row, prop) || '—' }}
             </button>
           </span>
 
           <!-- Input texte / email -->
           <span v-else>
-            <template v-if="isEditing(row.id as number, prop)">
-              <div class="flex items-center gap-1">
-                <input
-                  :data-edit-input="prop"
-                  :type="FIELD_TYPE[prop]"
-                  class="min-w-0 flex-1 rounded border border-blue-400 bg-white px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none"
-                  v-model="draftValue"
-                  @keydown.enter.prevent="confirmEdit(row, prop)"
-                  @keydown.escape="cancelEdit()"
-                  v-focus
-                />
-                <button
-                  data-edit-confirm
-                  class="shrink-0 rounded bg-blue-500 px-2 py-1 text-xs font-semibold text-white"
-                  @click="confirmEdit(row, prop)"
-                >✓</button>
-                <button
-                  data-edit-cancel
-                  class="shrink-0 rounded border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-muted)]"
-                  @click="cancelEdit()"
-                >✗</button>
-              </div>
-            </template>
+            <input
+              v-if="isEditing(row.id as number, prop)"
+              :data-edit-input="prop"
+              :type="FIELD_TYPE[prop]"
+              class="min-w-0 w-full rounded border border-blue-400 bg-white px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none"
+              v-model="draftValue"
+              @blur="storeEdit(row, prop, draftValue)"
+              @keydown.enter.prevent="storeEdit(row, prop, draftValue)"
+              @keydown.escape="cancelFieldEdit()"
+              v-focus
+            />
             <button
               v-else
               :data-edit="prop"
-              class="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+              class="w-full truncate rounded px-1 py-0.5 text-left hover:bg-[var(--color-surface)]"
+              :class="pendingChanges[row.id as number]?.[prop] !== undefined ? 'text-blue-600 font-medium' : 'text-[var(--color-text)]'"
               @click="startEdit(row.id as number, prop, String(row[prop] ?? ''))"
             >
-              <span class="flex-1 truncate">{{ row[prop] ?? '—' }}</span>
-              <svg class="size-3 shrink-0 text-[var(--color-text-muted)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5l3 3M4 16l1-4 9.5-9.5a2.121 2.121 0 013 3L8 15.5 4 16z" />
-              </svg>
+              {{ displayValue(row, prop) || '—' }}
             </button>
           </span>
         </template>
@@ -199,6 +209,27 @@ function cancelEdit() {
 
         <span class="text-[var(--color-text-muted)]">Dernier accès</span>
         <span class="text-[var(--color-text)]">{{ formatDate(row.dernierAcces) }}</span>
+
+        <!-- Save bar — appears only when there are pending diffs -->
+        <div
+          v-if="hasPendingChanges(row.id as number)"
+          class="col-span-2 mt-2 flex gap-2 border-t border-[var(--color-border)] pt-3"
+        >
+          <button
+            data-row-confirm
+            class="flex-1 rounded bg-blue-500 px-3 py-1.5 text-sm font-medium text-white"
+            @click="commitRow(row)"
+          >
+            Enregistrer
+          </button>
+          <button
+            data-row-cancel
+            class="flex-1 rounded border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-muted)]"
+            @click="cancelRow(row.id as number)"
+          >
+            Annuler
+          </button>
+        </div>
       </div>
     </div>
   </div>

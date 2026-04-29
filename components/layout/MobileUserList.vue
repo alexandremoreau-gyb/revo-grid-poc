@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import type { RowData } from '~/types/grid'
 import { USER_COMPANIES, USER_ROLES, USER_STATUTS } from '~/domains/users/constants'
+import { useToast } from '~/composables/app/useToast'
 
 interface Props {
   rows: RowData[]
@@ -29,6 +30,8 @@ const FIELD_OPTIONS: Partial<Record<EditableField, readonly string[]>> = {
 }
 
 // Active field being typed in right now
+const { show: showToast } = useToast()
+
 const editingField = ref<{ rowId: number; prop: EditableField } | null>(null)
 const draftValue = ref<string>('')
 
@@ -103,6 +106,7 @@ function commitRow(row: RowData) {
       row[prop as EditableField] = val
     }
     delete pendingChanges.value[rowId]
+    showToast('Modifications enregistrées')
   }
 }
 

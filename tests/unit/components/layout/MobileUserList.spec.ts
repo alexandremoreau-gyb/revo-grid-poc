@@ -52,7 +52,7 @@ describe('tap-to-edit — champs texte', () => {
     expect((input.element as HTMLInputElement).value).toBe('Dupont')
   })
 
-  it('sauvegarde la valeur et repasse en lecture sur blur', async () => {
+  it('sauvegarde la valeur sur clic Valider', async () => {
     const rows = [makeRow()]
     const wrapper = mountList(rows)
 
@@ -62,14 +62,32 @@ describe('tap-to-edit — champs texte', () => {
     await wrapper.find('[data-edit="nom"]').trigger('click')
     await nextTick()
 
-    const input = wrapper.find('input[data-edit-input="nom"]')
-    await input.setValue('Martin')
-    await input.trigger('blur')
+    await wrapper.find('input[data-edit-input="nom"]').setValue('Martin')
+    await wrapper.find('[data-edit-confirm]').trigger('click')
     await nextTick()
 
     expect(rows[0]!.nom).toBe('Martin')
     expect(wrapper.find('input[data-edit-input="nom"]').exists()).toBe(false)
     expect(wrapper.find('[data-edit="nom"]').text()).toContain('Martin')
+  })
+
+  it('annule sans sauvegarder sur clic Annuler', async () => {
+    const rows = [makeRow()]
+    const wrapper = mountList(rows)
+
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    await wrapper.find('[data-edit="nom"]').trigger('click')
+    await nextTick()
+
+    await wrapper.find('input[data-edit-input="nom"]').setValue('Modifié')
+    await wrapper.find('[data-edit-cancel]').trigger('click')
+    await nextTick()
+
+    expect(rows[0]!.nom).toBe('Dupont')
+    expect(wrapper.find('input[data-edit-input="nom"]').exists()).toBe(false)
+    expect(wrapper.find('[data-edit="nom"]').text()).toContain('Dupont')
   })
 })
 
@@ -88,7 +106,7 @@ describe('tap-to-edit — champs select', () => {
     expect((sel.element as HTMLSelectElement).value).toBe('Manager')
   })
 
-  it('sauvegarde immédiatement sur change du select', async () => {
+  it('sauvegarde la valeur du select sur clic Valider', async () => {
     const rows = [makeRow()]
     const wrapper = mountList(rows)
 
@@ -101,6 +119,7 @@ describe('tap-to-edit — champs select', () => {
     const sel = wrapper.find('select[data-edit-input="role"]')
     await sel.setValue('Admin')
     await sel.trigger('change')
+    await wrapper.find('[data-edit-confirm]').trigger('click')
     await nextTick()
 
     expect(rows[0]!.role).toBe('Admin')

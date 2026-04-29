@@ -29,10 +29,11 @@ const FIELD_OPTIONS: Partial<Record<EditableField, readonly string[]>> = {
 }
 
 const editingField = ref<{ rowId: number; prop: EditableField } | null>(null)
+const draftValue = ref<string>('')
 
 const vFocus = {
   mounted(el: HTMLElement) {
-    el.focus()
+    el.focus({ preventScroll: true })
   },
 }
 
@@ -53,12 +54,17 @@ function isEditing(rowId: number, prop: EditableField): boolean {
   return editingField.value?.rowId === rowId && editingField.value?.prop === prop
 }
 
-function startEdit(rowId: number, prop: EditableField) {
+function startEdit(rowId: number, prop: EditableField, initialVal: string) {
   editingField.value = { rowId, prop }
+  draftValue.value = initialVal
 }
 
-function commitEdit(row: RowData, prop: EditableField, val: string) {
-  row[prop] = val
+function confirmEdit(row: RowData, prop: EditableField) {
+  row[prop] = draftValue.value
+  editingField.value = null
+}
+
+function cancelEdit() {
   editingField.value = null
 }
 </script>
@@ -103,26 +109,43 @@ function commitEdit(row: RowData, prop: EditableField, val: string) {
       >
         <!-- Champs éditables -->
         <template v-for="prop in (['nom', 'prenom', 'email', 'role', 'statut', 'societe'] as const)" :key="prop">
-          <span class="self-center text-[var(--color-text-muted)] capitalize">
+          <span class="self-start pt-1.5 text-[var(--color-text-muted)] capitalize">
             {{ prop === 'societe' ? 'Société' : prop }}
           </span>
 
           <!-- Select -->
           <span v-if="FIELD_TYPE[prop] === 'select'">
-            <select
-              v-if="isEditing(row.id as number, prop)"
-              :data-edit-input="prop"
-              class="w-full rounded border border-blue-400 bg-white px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none"
-              :value="String(row[prop] ?? '')"
-              @change="commitEdit(row, prop, ($event.target as HTMLSelectElement).value)"
-            >
-              <option v-for="opt in FIELD_OPTIONS[prop]" :key="opt" :value="opt">{{ opt }}</option>
-            </select>
+            <template v-if="isEditing(row.id as number, prop)">
+              <select
+                :data-edit-input="prop"
+                class="w-full rounded border border-blue-400 bg-white px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none"
+                :value="draftValue"
+                @change="draftValue = String(($event.target as HTMLSelectElement).value)"
+              >
+                <option v-for="opt in FIELD_OPTIONS[prop]" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+              <div class="mt-1.5 flex gap-1.5">
+                <button
+                  data-edit-confirm
+                  class="flex-1 rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white"
+                  @click="confirmEdit(row, prop)"
+                >
+                  Valider
+                </button>
+                <button
+                  data-edit-cancel
+                  class="flex-1 rounded border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-muted)]"
+                  @click="cancelEdit()"
+                >
+                  Annuler
+                </button>
+              </div>
+            </template>
             <button
               v-else
               :data-edit="prop"
               class="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[var(--color-text)] hover:bg-[var(--color-surface)]"
-              @click="startEdit(row.id as number, prop)"
+              @click="startEdit(row.id as number, prop, String(row[prop] ?? ''))"
             >
               <span class="flex-1">{{ row[prop] ?? '—' }}</span>
               <svg class="size-3 shrink-0 text-[var(--color-text-muted)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -133,21 +156,34 @@ function commitEdit(row: RowData, prop: EditableField, val: string) {
 
           <!-- Input texte / email -->
           <span v-else>
-            <input
-              v-if="isEditing(row.id as number, prop)"
-              :data-edit-input="prop"
-              :type="FIELD_TYPE[prop]"
-              class="w-full rounded border border-blue-400 bg-white px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none"
-              :value="String(row[prop] ?? '')"
-              @blur="commitEdit(row, prop, ($event.target as HTMLInputElement).value)"
-              @keydown.enter="commitEdit(row, prop, ($event.target as HTMLInputElement).value)"
-              v-focus
-            />
+            <template v-if="isEditing(row.id as number, prop)">
+              <div class="flex items-center gap-1">
+                <input
+                  :data-edit-input="prop"
+                  :type="FIELD_TYPE[prop]"
+                  class="min-w-0 flex-1 rounded border border-blue-400 bg-white px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none"
+                  v-model="draftValue"
+                  @keydown.enter.prevent="confirmEdit(row, prop)"
+                  @keydown.escape="cancelEdit()"
+                  v-focus
+                />
+                <button
+                  data-edit-confirm
+                  class="shrink-0 rounded bg-blue-500 px-2 py-1 text-xs font-semibold text-white"
+                  @click="confirmEdit(row, prop)"
+                >✓</button>
+                <button
+                  data-edit-cancel
+                  class="shrink-0 rounded border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-muted)]"
+                  @click="cancelEdit()"
+                >✗</button>
+              </div>
+            </template>
             <button
               v-else
               :data-edit="prop"
               class="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[var(--color-text)] hover:bg-[var(--color-surface)]"
-              @click="startEdit(row.id as number, prop)"
+              @click="startEdit(row.id as number, prop, String(row[prop] ?? ''))"
             >
               <span class="flex-1 truncate">{{ row[prop] ?? '—' }}</span>
               <svg class="size-3 shrink-0 text-[var(--color-text-muted)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">

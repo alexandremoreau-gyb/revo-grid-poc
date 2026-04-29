@@ -116,7 +116,6 @@ function cancelRow(rowId: number) {
   <div class="flex flex-col gap-0 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
     <!-- Header -->
     <div class="flex items-center gap-3 bg-[var(--color-surface-alt,#fdf9ef)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-      <span class="size-4 shrink-0" />
       <span>Nom utilisateur</span>
     </div>
 
@@ -131,7 +130,6 @@ function cancelRow(rowId: number) {
         class="flex w-full items-center gap-3 px-4 py-3 text-left"
         @click="toggle(row.id as number)"
       >
-        <span class="size-4 shrink-0 rounded border border-[var(--color-border)] bg-[var(--color-surface)]" />
         <span class="flex-1 text-sm font-medium text-[var(--color-text)]">
           {{ row.prenom }} {{ row.nom }}
         </span>

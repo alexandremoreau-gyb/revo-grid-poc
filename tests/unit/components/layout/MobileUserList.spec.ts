@@ -48,6 +48,7 @@ describe('tap-to-edit — champs texte', () => {
 
     const input = wrapper.find('input[data-edit-input="nom"]')
     expect(input.exists()).toBe(true)
+    expect((input.element as HTMLInputElement).type).toBe('text')
     expect((input.element as HTMLInputElement).value).toBe('Dupont')
   })
 
@@ -104,6 +105,7 @@ describe('tap-to-edit — champs select', () => {
 
     expect(rows[0]!.role).toBe('Admin')
     expect(wrapper.find('select[data-edit-input="role"]').exists()).toBe(false)
+    expect(wrapper.find('[data-edit="role"]').text()).toContain('Admin')
   })
 })
 
@@ -114,6 +116,9 @@ describe('champs non-éditables', () => {
     await wrapper.find('button').trigger('click')
     await nextTick()
 
+    // Ancre positive : au moins un champ éditable est rendu
+    expect(wrapper.find('[data-edit="nom"]').exists()).toBe(true)
+    // Puis les assertions négatives
     expect(wrapper.find('[data-edit="dateCreation"]').exists()).toBe(false)
     expect(wrapper.find('[data-edit="dernierAcces"]').exists()).toBe(false)
   })

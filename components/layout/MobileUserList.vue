@@ -70,6 +70,13 @@ function hasPendingChanges(rowId: number): boolean {
   return !!changes && Object.keys(changes).length > 0
 }
 
+// Also true while the user is actively typing a diff (before blur stores it)
+function liveHasPendingChanges(row: RowData): boolean {
+  if (hasPendingChanges(row.id as number)) return true
+  if (editingField.value?.rowId !== (row.id as number)) return false
+  return draftValue.value !== String(row[editingField.value.prop] ?? '')
+}
+
 function startEdit(rowId: number, prop: EditableField, originalVal: string) {
   editingField.value = { rowId, prop }
   // Resume from pending draft if any, otherwise start from original value
@@ -214,7 +221,7 @@ function cancelRow(rowId: number) {
 
         <!-- Save bar — appears only when there are pending diffs -->
         <div
-          v-if="hasPendingChanges(row.id as number)"
+          v-if="liveHasPendingChanges(row)"
           class="col-span-2 mt-2 flex gap-2 border-t border-[var(--color-border)] pt-3"
         >
           <button

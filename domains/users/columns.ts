@@ -1,7 +1,6 @@
 import type { ColumnDef } from '~/types/grid'
 
 export const columns: ColumnDef[] = [
-  { prop: 'id', name: 'ID', size: 65, editable: false, variant: 'id', centered: true, headerAlign: 'center', colPriority: 1 },
   { prop: 'nom', name: 'NOM', size: 160, editable: false, variant: 'text', headerAlign: 'start', colPriority: 1 },
   { prop: 'prenom', name: 'PRÉNOM', size: 140, editable: false, variant: 'text', headerAlign: 'start', colPriority: 2 },
   { prop: 'email', name: 'EMAIL', size: 300, editable: false, variant: 'email', headerAlign: 'start', colPriority: 1 },

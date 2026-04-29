@@ -79,7 +79,7 @@ function createInputEditor(
       this.committed = true
 
       const value = normalize(this.currentValue)
-      this.save(value, focusNext)
+      this.save(value, !focusNext)
       this.close(focusNext)
     }
 
@@ -93,7 +93,7 @@ function createInputEditor(
       if (this.committed) return
       this.committed = true
       const value = normalize(this.currentValue)
-      this.save(value, true)
+      this.save(value, false)
       this.close(true)
     }
   } as unknown as EditorCtr
@@ -127,6 +127,9 @@ function createSelectEditor(options: readonly string[]): EditorCtr {
             this.commit(false)
           },
           onKeyDown: (event: KeyboardEvent) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) {
+              event.stopPropagation()
+            }
             if (event.key === 'Escape') {
               event.preventDefault()
               this.cancel()
@@ -159,7 +162,7 @@ function createSelectEditor(options: readonly string[]): EditorCtr {
     private commit(focusNext: boolean): void {
       if (this.committed) return
       this.committed = true
-      this.save(this.currentValue, focusNext)
+      this.save(this.currentValue, !focusNext)
       this.close(focusNext)
     }
 

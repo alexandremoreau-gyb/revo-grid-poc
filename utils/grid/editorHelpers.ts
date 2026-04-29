@@ -37,7 +37,10 @@ export function inputStyles(): Record<string, string> {
     background: 'var(--color-surface)',
     color: 'var(--color-text)',
     padding: '0 8px',
-    font: 'inherit',
+    fontFamily: 'inherit',
+    fontSize: '12px',
+    fontWeight: '400',
+    lineHeight: '36px',
   }
 }
 
@@ -52,7 +55,10 @@ export function selectStyles(): Record<string, string> {
     background: 'var(--color-surface)',
     color: 'var(--color-text)',
     padding: '0 8px',
-    font: 'inherit',
+    fontFamily: 'inherit',
+    fontSize: '12px',
+    fontWeight: '400',
+    lineHeight: '36px',
     cursor: 'pointer',
   }
 }
@@ -64,6 +70,8 @@ export function handleInputEditorKeyDown(
   moveNext: () => void,
   cancel: () => void,
 ): void {
+  event.stopPropagation?.()
+
   if (event.key === 'Enter') {
     event.preventDefault()
     markEnterCommit(editCell)
@@ -84,32 +92,48 @@ export function handleInputEditorKeyDown(
 }
 
 export function focusInput(element: Element | null | undefined, inputType: 'text' | 'date' | 'number'): void {
-  const input = element?.firstElementChild as HTMLInputElement | null
+  const input = resolveEditorInput(element)
   if (!input) return
 
-  requestAnimationFrame(() => {
-    input.focus()
+  const applyFocus = () => {
+    if (!input.isConnected) return
+    input.focus({ preventScroll: true })
     if (inputType !== 'date') {
-      input.select()
+      const len = input.value.length
+      input.setSelectionRange(len, len)
     }
-  })
+  }
+
+  applyFocus()
+  queueMicrotask(applyFocus)
+  requestAnimationFrame(applyFocus)
+  setTimeout(applyFocus, 0)
+  setTimeout(applyFocus, 50)
 }
 
 export function focusSelect(element: Element | null | undefined): void {
   const select = element?.firstElementChild as HTMLSelectElement | null
   if (!select) return
 
-  requestAnimationFrame(() => {
+  setTimeout(() => {
+    if (!select.isConnected) return
     select.focus()
-  })
+  }, 0)
 }
 
 export function blurFirstInput(element: Element | null | undefined): void {
-  const input = element?.firstElementChild as HTMLInputElement | null
+  const input = resolveEditorInput(element)
   input?.blur()
 }
 
 export function blurFirstSelect(element: Element | null | undefined): void {
   const select = element?.firstElementChild as HTMLSelectElement | null
   select?.blur()
+}
+
+function resolveEditorInput(element: Element | null | undefined): HTMLInputElement | null {
+  if (!element) return null
+  if (element instanceof HTMLInputElement) return element
+
+  return element.querySelector('input')
 }

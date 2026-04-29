@@ -144,3 +144,24 @@ revo-grid[theme="compact"] revogr-data .rgRow,
 revo-grid[theme="darkCompact"] revogr-data .rgRow {
   line-height: 36px;
 }
+
+/* Focus cellule : garder le contour vert, sans effet de zoom typographique. */
+revo-grid[theme="compact"] .focused-cell,
+revo-grid[theme="compact"] .selection-range,
+revo-grid[theme="darkCompact"] .focused-cell,
+revo-grid[theme="darkCompact"] .selection-range {
+  transform: none !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  letter-spacing: inherit !important;
+}
+
+revo-grid[theme="compact"] .focused-cell *,
+revo-grid[theme="compact"] .selection-range *,
+revo-grid[theme="darkCompact"] .focused-cell *,
+revo-grid[theme="darkCompact"] .selection-range * {
+  transform: none !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  letter-spacing: inherit !important;
+}

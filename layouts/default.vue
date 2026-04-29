@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import NavBar from '~/components/navigation/NavBar.vue'
 import { useSidebar } from '~/composables/app/useSidebar'
+import HistoryPanel from '~/components/layout/HistoryPanel.vue'
 
 const { collapsed } = useSidebar()
 </script>
@@ -14,5 +15,6 @@ const { collapsed } = useSidebar()
     >
       <slot />
     </main>
+    <HistoryPanel />
   </div>
 </template>

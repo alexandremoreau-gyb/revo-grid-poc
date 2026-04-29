@@ -2,9 +2,11 @@ import type { Ref } from 'vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import DataGrid from '~/components/grid/DataGrid.vue'
 import { useToast } from '~/composables/app/useToast'
+import { useHistory } from '~/composables/app/useHistory'
 import type { CellEditPayload, RowData } from '~/types/grid'
 
 export function useTablePageEditing(pagedRows: Ref<RowData[]>) {
+  const { addEntry } = useHistory()
   const { show: showToast } = useToast()
   const gridRef = ref<InstanceType<typeof DataGrid> | null>(null)
   const hasPendingEdits = ref(false)
@@ -29,8 +31,15 @@ export function useTablePageEditing(pagedRows: Ref<RowData[]>) {
   function onCellEdit(payload: CellEditPayload) {
     const row = pagedRows.value[payload.rowIndex] as Record<string, unknown> | undefined
     if (row) {
+      const oldVal = row[payload.prop]
       row[payload.prop] = payload.val
       showToast('Modification réussie')
+      addEntry(
+        String(row.reference ?? `Ligne ${payload.rowIndex + 1}`),
+        payload.prop,
+        oldVal,
+        payload.val,
+      )
     }
   }
 

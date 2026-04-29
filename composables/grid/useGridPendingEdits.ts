@@ -1,8 +1,8 @@
-import type { AfterEditEvent } from '@revolist/revogrid'
 import type { CellEditPayload, RowData } from '~/types/grid'
 import { consumeEnterCommit } from '~/utils/grid/editCommitIntent'
 import { useConfirmModal } from '~/composables/app/useConfirmModal'
 import { nextTick, onMounted, onUnmounted, ref, watch, type Ref } from 'vue'
+import type { AfterEditEvent, BeforeSaveDataDetails } from '@revolist/revogrid'
 
 function cloneRows(rows: RowData[]) {
   return rows.map(row => ({ ...row }))
@@ -15,6 +15,11 @@ function upsertEdit(edits: CellEditPayload[], payload: CellEditPayload): CellEdi
   const nextEdits = [...edits]
   nextEdits[idx] = payload
   return nextEdits
+}
+
+function normalizeComparableValue(value: unknown): string {
+  if (value == null) return ''
+  return String(value)
 }
 
 interface UseGridPendingEditsOptions {
@@ -46,11 +51,15 @@ export function useGridPendingEdits({
   const pendingRowIndex = ref<number | null>(null)
   const pendingEdits = ref<CellEditPayload[]>([])
   const activeEdit = ref(false)
+  const activeEditRowIndex = ref<number | null>(null)
   let confirmPromise: Promise<void> | null = null
+
+  let suppressDeepWatch = false
 
   watch(
     rows,
     (nextRows) => {
+      if (suppressDeepWatch) return
       clearPendingState()
       gridRows.value = cloneRows(nextRows)
     },
@@ -58,14 +67,15 @@ export function useGridPendingEdits({
   )
 
   watch(
-    () => activeEdit.value || pendingEdits.value.length > 0,
-    emitPendingChange,
+    () => pendingEdits.value.length > 0,
+    hasPending => emitPendingChange(hasPending),
   )
 
   function clearPendingState() {
     pendingRowIndex.value = null
     pendingEdits.value = []
     activeEdit.value = false
+    activeEditRowIndex.value = null
   }
 
   function resetGridDraft() {
@@ -85,6 +95,7 @@ export function useGridPendingEdits({
     pendingRowIndex.value = payload.rowIndex
     pendingEdits.value = upsertEdit(pendingEdits.value, payload)
     activeEdit.value = false
+    activeEditRowIndex.value = null
   }
 
   function hasPendingWork(): boolean {
@@ -92,7 +103,15 @@ export function useGridPendingEdits({
   }
 
   function isDifferentPendingRow(rowIndex: number): boolean {
-    return pendingRowIndex.value !== null && rowIndex !== pendingRowIndex.value
+    const guardedRowIndex = pendingRowIndex.value ?? activeEditRowIndex.value
+    return guardedRowIndex !== null && rowIndex !== guardedRowIndex
+  }
+
+  function isUnchangedEdit(payload: CellEditPayload): boolean {
+    const row = rows.value[payload.rowIndex]
+    if (!row) return false
+
+    return normalizeComparableValue(row[payload.prop]) === normalizeComparableValue(payload.val)
   }
 
   async function waitForEditEvents(): Promise<void> {
@@ -120,7 +139,12 @@ export function useGridPendingEdits({
 
     const confirmed = await confirm()
     if (confirmed) {
+      suppressDeepWatch = true
       for (const edit of edits) emitCellEdit(edit)
+      await nextTick()
+      resetGridDraft()
+      await nextTick()
+      suppressDeepWatch = false
       return
     }
 
@@ -134,17 +158,34 @@ export function useGridPendingEdits({
     await confirmPendingRow()
   }
 
-  function onBeforeEditStart() {
+  async function onBeforeEditStart(event: CustomEvent<BeforeSaveDataDetails>) {
+    const rowIndex = event.detail?.rowIndex
+
+    if (typeof rowIndex === 'number' && isDifferentPendingRow(rowIndex)) {
+      event.preventDefault()
+      await confirmPendingRow()
+      return
+    }
+
     activeEdit.value = true
+    activeEditRowIndex.value = typeof rowIndex === 'number' ? rowIndex : null
   }
 
   function onEditClosed() {
     activeEdit.value = false
+    activeEditRowIndex.value = null
   }
 
   async function onAfterEdit(event: CustomEvent<AfterEditEvent>) {
     const payload = toCellEditPayload(event.detail)
     if (!payload) return
+
+    if (isUnchangedEdit(payload)) {
+      activeEdit.value = false
+      activeEditRowIndex.value = null
+      consumeEnterCommit(payload)
+      return
+    }
 
     if (isDifferentPendingRow(payload.rowIndex)) {
       await confirmPendingRow()

@@ -239,6 +239,20 @@ describe('inlineEditors', () => {
     expect(undefinedSelectHarness.vnode.props.value).toBe('')
   })
 
+  it("garde une typo compacte dans l'éditeur pour éviter le zoom du contenu", () => {
+    const textHarness = makeInlineEditorHarness(createTextEditor(), 'draft')
+    const selectHarness = makeInlineEditorHarness(createStatusEditor(statusOptions), 'Inactive')
+
+    expect(textHarness.vnode.props.style).toMatchObject({
+      fontSize: '12px',
+      lineHeight: '36px',
+    })
+    expect(selectHarness.vnode.props.style).toMatchObject({
+      fontSize: '12px',
+      lineHeight: '36px',
+    })
+  })
+
   it('garde le rendu et le detach quand aucun enfant n’est monté', () => {
     const inputHarness = makeInlineEditorHarness(createTextEditor(), 'draft')
     const selectHarness = makeInlineEditorHarness(createStatusEditor(statusOptions), 'Inactive')
@@ -247,6 +261,60 @@ describe('inlineEditors', () => {
     expect(() => inputHarness.editor.beforeDisconnect?.()).not.toThrow()
     expect(() => selectHarness.editor.componentDidRender()).not.toThrow()
     expect(() => selectHarness.editor.beforeDisconnect?.()).not.toThrow()
+  })
+
+  it("focus l'éditeur texte immédiatement avec le curseur à la fin", () => {
+    const harness = makeInlineEditorHarness(createTextEditor(), 'draft')
+    const input = attachHostElement(harness.editor, 'input')
+
+    input.value = 'draft'
+    document.body.appendChild(harness.editor.element as Node)
+
+    harness.editor.componentDidRender()
+
+    expect(document.activeElement).toBe(input)
+    expect(input.selectionStart).toBe(5)
+    expect(input.selectionEnd).toBe(5)
+
+    harness.editor.element?.remove()
+  })
+
+  it("reprend le focus et remet le curseur à la fin si la grille vole le focus après Enter", async () => {
+    const harness = makeInlineEditorHarness(createTextEditor(), 'draft')
+    const input = attachHostElement(harness.editor, 'input')
+    const gridFocusTrap = document.createElement('button')
+
+    input.value = 'draft'
+    document.body.appendChild(gridFocusTrap)
+    document.body.appendChild(harness.editor.element as Node)
+
+    harness.editor.componentDidRender()
+    gridFocusTrap.focus()
+    await flushMicrotasks()
+
+    expect(document.activeElement).toBe(input)
+    expect(input.selectionStart).toBe(5)
+    expect(input.selectionEnd).toBe(5)
+
+    harness.editor.element?.remove()
+    gridFocusTrap.remove()
+  })
+
+  it("focus aussi l'input quand RevoGrid expose directement l'élément éditeur", () => {
+    const harness = makeInlineEditorHarness(createTextEditor(), 'draft')
+    const input = document.createElement('input')
+
+    input.value = 'draft'
+    document.body.appendChild(input)
+    harness.editor.element = input
+
+    harness.editor.componentDidRender()
+
+    expect(document.activeElement).toBe(input)
+    expect(input.selectionStart).toBe(5)
+    expect(input.selectionEnd).toBe(5)
+
+    input.remove()
   })
 
   it("createTextEditor enregistre immédiatement sur Enter (la confirmation est gérée par DataGrid)", async () => {

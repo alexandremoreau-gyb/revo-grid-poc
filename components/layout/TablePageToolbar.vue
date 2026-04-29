@@ -78,7 +78,7 @@ defineEmits<{
         >
           <path d="M2.5 8.5l3.5 3.5 7-7" />
         </svg>
-        Valider
+        Enregistrer
       </button>
     </Transition>
   </div>

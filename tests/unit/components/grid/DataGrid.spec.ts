@@ -491,6 +491,94 @@ describe('DataGrid', () => {
     expect(wrapper.emitted('pending-change')?.at(-1)).toEqual([false])
   })
 
+  it("bloque l'édition d'une autre ligne tant que la ligne pending n'est pas confirmée", async () => {
+    // Arrange
+    const mockConfirm = vi.fn().mockResolvedValue(false)
+    ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
+      visible: { value: false },
+      confirm: mockConfirm,
+      _resolve: vi.fn(),
+    })
+    const wrapper = mountGrid()
+    const grid = wrapper.findComponent(VGrid)
+    const preventDefault = vi.fn()
+
+    // Act
+    grid.vm.$emit('afteredit', {
+      detail: {
+        rowIndex: 0,
+        prop: 'symbol',
+        val: 'BTC-EDIT',
+      },
+    })
+    await flushAsync()
+
+    grid.vm.$emit('beforeeditstart', {
+      detail: {
+        rowIndex: 1,
+        prop: 'price',
+        val: 3210.5,
+      },
+      preventDefault,
+    })
+    await flushAsync()
+    await flushAsync()
+
+    // Assert
+    expect(preventDefault).toHaveBeenCalledTimes(1)
+    expect(mockConfirm).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('cell-edit')).toBeUndefined()
+    expect(wrapper.emitted('pending-change')?.at(-1)).toEqual([false])
+  })
+
+  it("ignore une sortie d'éditeur sans changement et ne déclenche pas la confirmation", async () => {
+    // Arrange
+    const mockConfirm = vi.fn().mockResolvedValue(true)
+    ;(useConfirmModal as ReturnType<typeof vi.fn>).mockReturnValue({
+      visible: { value: false },
+      confirm: mockConfirm,
+      _resolve: vi.fn(),
+    })
+    const wrapper = mountGrid()
+    const grid = wrapper.findComponent(VGrid)
+    const preventDefault = vi.fn()
+
+    // Act
+    grid.vm.$emit('beforeeditstart', {
+      detail: {
+        rowIndex: 0,
+        prop: 'symbol',
+        val: 'BTC',
+      },
+      preventDefault: vi.fn(),
+    })
+    grid.vm.$emit('afteredit', {
+      detail: {
+        rowIndex: 0,
+        prop: 'symbol',
+        val: 'BTC',
+      },
+    })
+    await flushAsync()
+
+    grid.vm.$emit('beforeeditstart', {
+      detail: {
+        rowIndex: 1,
+        prop: 'price',
+        val: 3210.5,
+      },
+      preventDefault,
+    })
+    await flushAsync()
+    await (wrapper.vm as unknown as { confirmPendingRow: () => Promise<void> }).confirmPendingRow()
+
+    // Assert
+    expect(preventDefault).not.toHaveBeenCalled()
+    expect(mockConfirm).not.toHaveBeenCalled()
+    expect(wrapper.emitted('cell-edit')).toBeUndefined()
+    expect(wrapper.emitted('pending-change')).toBeUndefined()
+  })
+
   it('relaie les events de tri et de filtre vers les emits métier', () => {
     // Arrange
     const wrapper = mountGrid({

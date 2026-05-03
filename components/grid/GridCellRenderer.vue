@@ -42,6 +42,7 @@ interface GridCellRendererProps {
   type?: string
   variant?: GridColumnVariant
   centered?: boolean
+  editable?: boolean
 }
 
 const props = defineProps<GridCellRendererProps>()
@@ -180,6 +181,7 @@ const userStatusClass = computed(() => USER_STATUS_STYLES[value.value] ?? USER_S
   <GridEmailCell
     v-else-if="variant === 'email'"
     :value="value"
+    :editable="editable"
   />
 
   <!-- company -->

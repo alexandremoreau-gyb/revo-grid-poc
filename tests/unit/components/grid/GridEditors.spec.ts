@@ -1,28 +1,25 @@
 import { h, type Ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import { SelectEditor } from '~/utils/grid/SelectEditor'
-import type { CloseFn, HFn, InlineEditorBase, SaveFn } from '~/utils/grid/editorHelpers'
+import type { EditCell, EditorCtr } from '@revolist/revogrid'
 import DateSortHeader from '~/components/grid/DateSortHeader.vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CloseFn, HFn, InlineEditorBase, SaveFn } from '~/utils/grid/editorHelpers'
 import {
   createDateEditor,
   createNumberEditor,
   createStatusEditor,
   createTextEditor,
 } from '~/utils/grid/inlineEditors'
-
-type InlineEditorCtor = new (
-  column: unknown,
-  save: SaveFn,
-  close: CloseFn,
-) => InlineEditorBase
+import { editors as dossierEditors } from '~/domains/dossiers/editors'
 
 type InlineEditorVNodeProps = {
   value?: unknown
-  onBlur?: () => void
-  onChange?: (event: { target: { value: string } }) => void
-  onInput?: (event: { target: { value: string } }) => void
-  onKeyDown?: (event: { key: string, preventDefault: () => void }) => void
+  style?: Record<string, string>
+  onBlur: () => void
+  onChange: (event: { target: { value: string } }) => void
+  onInput: (event: { target: { value: string } }) => void
+  onKeyDown: (event: { key: string, preventDefault: () => void, stopPropagation?: () => void }) => void
 }
 
 type InlineEditorVNode = {
@@ -78,12 +75,25 @@ function stubAnimationFrame() {
   })
 }
 
-function makeInlineEditorHarness(ctor: InlineEditorCtor, value: unknown) {
+function makeEditCell(value: unknown): EditCell {
+  return {
+    x: 0,
+    y: 0,
+    val: value,
+  } as EditCell
+}
+
+function makeInlineEditorHarness(ctor: EditorCtr, value: unknown) {
   const save = vi.fn()
   const close = vi.fn()
-  const editor = new ctor({}, save, close)
+  const EditorClass = ctor as unknown as new (
+    column: unknown,
+    save: SaveFn,
+    close: CloseFn,
+  ) => InlineEditorBase
+  const editor = new EditorClass({}, save, close)
 
-  editor.editCell = { val: value }
+  editor.editCell = makeEditCell(value)
 
   const vnode = editor.render(h as unknown as HFn) as InlineEditorVNode
 
@@ -257,9 +267,9 @@ describe('inlineEditors', () => {
     const inputHarness = makeInlineEditorHarness(createTextEditor(), 'draft')
     const selectHarness = makeInlineEditorHarness(createStatusEditor(statusOptions), 'Inactive')
 
-    expect(() => inputHarness.editor.componentDidRender()).not.toThrow()
+    expect(() => inputHarness.editor.componentDidRender?.()).not.toThrow()
     expect(() => inputHarness.editor.beforeDisconnect?.()).not.toThrow()
-    expect(() => selectHarness.editor.componentDidRender()).not.toThrow()
+    expect(() => selectHarness.editor.componentDidRender?.()).not.toThrow()
     expect(() => selectHarness.editor.beforeDisconnect?.()).not.toThrow()
   })
 
@@ -270,7 +280,7 @@ describe('inlineEditors', () => {
     input.value = 'draft'
     document.body.appendChild(harness.editor.element as Node)
 
-    harness.editor.componentDidRender()
+    harness.editor.componentDidRender?.()
 
     expect(document.activeElement).toBe(input)
     expect(input.selectionStart).toBe(5)
@@ -288,7 +298,7 @@ describe('inlineEditors', () => {
     document.body.appendChild(gridFocusTrap)
     document.body.appendChild(harness.editor.element as Node)
 
-    harness.editor.componentDidRender()
+    harness.editor.componentDidRender?.()
     gridFocusTrap.focus()
     await flushMicrotasks()
 
@@ -308,7 +318,7 @@ describe('inlineEditors', () => {
     document.body.appendChild(input)
     harness.editor.element = input
 
-    harness.editor.componentDidRender()
+    harness.editor.componentDidRender?.()
 
     expect(document.activeElement).toBe(input)
     expect(input.selectionStart).toBe(5)
@@ -326,9 +336,9 @@ describe('inlineEditors', () => {
 
     enterHarness.vnode.props.onInput({ target: { value: 'edited' } })
     enterHarness.vnode.props.onKeyDown({ key: 'Enter', preventDefault: vi.fn() })
-    enterHarness.editor.componentDidRender()
-    enterHarness.editor.beforeDisconnect()
-    enterHarness.editor.disconnectedCallback()
+    enterHarness.editor.componentDidRender?.()
+    enterHarness.editor.beforeDisconnect?.()
+    enterHarness.editor.disconnectedCallback?.()
 
     expect(enterHarness.save).toHaveBeenCalledWith('edited', false)
     expect(enterHarness.close).toHaveBeenCalledWith(false)
@@ -400,7 +410,7 @@ describe('inlineEditors', () => {
 
     harness.vnode.props.onInput({ target: { value: '2024-03-04' } })
     harness.vnode.props.onBlur()
-    harness.editor.componentDidRender()
+    harness.editor.componentDidRender?.()
 
     expect(harness.save).toHaveBeenCalledWith('2024-03-04', false)
     expect(harness.close).toHaveBeenCalledWith(false)
@@ -458,9 +468,9 @@ describe('inlineEditors', () => {
 
     changeHarness.vnode.props.onChange({ target: { value: 'Active' } })
     changeHarness.vnode.props.onBlur()
-    changeHarness.editor.componentDidRender()
-    changeHarness.editor.beforeDisconnect()
-    changeHarness.editor.disconnectedCallback()
+    changeHarness.editor.componentDidRender?.()
+    changeHarness.editor.beforeDisconnect?.()
+    changeHarness.editor.disconnectedCallback?.()
 
     expect(changeHarness.save).toHaveBeenCalledWith('Active', false)
     expect(changeHarness.close).toHaveBeenCalledWith(false)
@@ -490,5 +500,18 @@ describe('inlineEditors', () => {
     expect(keyHarness.save).toHaveBeenCalledTimes(1)
     expect(keyHarness.close).toHaveBeenCalledWith(false)
     expect(keyHarness.close).toHaveBeenCalledTimes(1)
+  })
+
+  it('le select de statut dossier reprend les couleurs du badge desktop pendant l’édition', () => {
+    const ctor = dossierEditors['select-statut']
+    const harness = makeInlineEditorHarness(ctor, 'Déposé')
+
+    expect(harness.vnode.props.style).toMatchObject({
+      background: '#059669',
+      color: '#ffffff',
+      borderColor: '#059669',
+      borderRadius: '4px',
+      fontWeight: '500',
+    })
   })
 })

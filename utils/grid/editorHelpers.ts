@@ -95,26 +95,28 @@ export function focusInput(element: Element | null | undefined, inputType: 'text
   const input = resolveEditorInput(element)
   if (!input) return
 
-  const applyFocus = () => {
-    if (!input.isConnected) return
+  const applyFocus = (requireConnected = true) => {
+    if (requireConnected && !input.isConnected) return
     input.focus({ preventScroll: true })
     if (inputType !== 'date') {
       const len = input.value.length
+      input.select()
       input.setSelectionRange(len, len)
     }
   }
 
-  applyFocus()
-  queueMicrotask(applyFocus)
-  requestAnimationFrame(applyFocus)
-  setTimeout(applyFocus, 0)
-  setTimeout(applyFocus, 50)
+  applyFocus(false)
+  queueMicrotask(() => applyFocus())
+  requestAnimationFrame(() => applyFocus())
+  setTimeout(() => applyFocus(), 0)
+  setTimeout(() => applyFocus(), 50)
 }
 
 export function focusSelect(element: Element | null | undefined): void {
   const select = element?.firstElementChild as HTMLSelectElement | null
   if (!select) return
 
+  select.focus()
   setTimeout(() => {
     if (!select.isConnected) return
     select.focus()

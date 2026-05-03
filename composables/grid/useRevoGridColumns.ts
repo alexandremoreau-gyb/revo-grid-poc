@@ -54,6 +54,7 @@ export function useRevoGridColumns(
 
   const defaultCellTemplate = VGridVueTemplate(GridCellRenderer, {})
   const centeredDefaultTemplate = VGridVueTemplate(GridCellRenderer, { centered: true })
+  const editableEmailTemplate = VGridVueTemplate(GridCellRenderer, { variant: 'email', editable: true })
 
   const dateHeaderTemplate = VGridVueTemplate(DateSortHeader, {})
   const centeredDateHeaderTemplate = VGridVueTemplate(DateSortHeader, { align: 'center' })
@@ -77,7 +78,9 @@ export function useRevoGridColumns(
       const isHeaderCentered = col.headerAlign === 'center'
 
       let cellTemplate: ReturnType<typeof VGridVueTemplate>
-      if (col.variant && isCentered) {
+      if (col.variant === 'email' && isEditable) {
+        cellTemplate = editableEmailTemplate
+      } else if (col.variant && isCentered) {
         cellTemplate = centeredVariantTemplates[col.variant]
       } else if (col.variant) {
         cellTemplate = variantTemplates[col.variant]

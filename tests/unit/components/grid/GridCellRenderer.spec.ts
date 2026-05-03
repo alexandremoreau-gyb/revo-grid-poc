@@ -29,7 +29,7 @@ afterEach(() => {
 
 type RendererWrapper = ReturnType<typeof mountRenderer>
 
-function mountRenderer(value: unknown, variant?: GridColumnVariant, centered = false) {
+function mountRenderer(value: unknown, variant?: GridColumnVariant, centered = false, editable = false) {
   return mount(GridCellRenderer, {
     global: {
       plugins: [i18n],
@@ -46,6 +46,7 @@ function mountRenderer(value: unknown, variant?: GridColumnVariant, centered = f
       value,
       variant,
       centered,
+      editable,
     },
   })
 }
@@ -230,6 +231,15 @@ describe('GridCellRenderer', () => {
     expect(company.text()).toContain('Acme')
     expect(actions.text()).toContain('Edit')
     expect(fallback.text()).toBe('plain text')
+  })
+
+  it("rend l'email éditable sans lien mailto", () => {
+    // Arrange / Act
+    const email = mountRenderer('alice@test.com', 'email', false, true)
+
+    // Assert
+    expect(email.find('a').exists()).toBe(false)
+    expect(email.get('span span.block.w-full.truncate').text()).toBe('alice@test.com')
   })
 
   it('rend les badges utilisateur avec tooltip tronquable', () => {

@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { EditorCtr } from '@revolist/revogrid'
-import AppToast from '~/components/ui/AppToast.vue'
 import DataGrid from '~/components/grid/DataGrid.vue'
 import type { ColumnDef, RowData } from '~/types/grid'
 import ConfirmModal from '~/components/ui/ConfirmModal.vue'
+import GridPagination from '~/components/grid/GridPagination.vue'
 import TablePageHeader from '~/components/layout/TablePageHeader.vue'
 import { useTablePageRows } from '~/composables/grid/useTablePageRows'
-import GridPagination from '~/components/grid/GridPagination.vue'
 import TablePageToolbar from '~/components/layout/TablePageToolbar.vue'
 import { useTablePageEditing } from '~/composables/grid/useTablePageEditing'
 
@@ -46,8 +45,9 @@ const { hasPendingEdits, onPendingChange, onConfirmRow, onCellEdit } = useTableP
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <AppToast />
-    <ConfirmModal />
+    <ClientOnly>
+      <ConfirmModal />
+    </ClientOnly>
 
     <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
       <TablePageHeader

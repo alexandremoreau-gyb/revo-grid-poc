@@ -104,6 +104,7 @@ defineExpose({ confirmPendingRow })
         :source="gridRows"
         :filter="enableColumnFilters"
         :readonly="!editable"
+        :can-focus="editable"
         :editors="props.editors"
         :style="gridStyle"
         theme="compact"

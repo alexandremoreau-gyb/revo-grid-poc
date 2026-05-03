@@ -13,7 +13,7 @@ const { open, toggle } = useHistoryPanel()
 </script>
 
 <template>
-  <div class="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
+  <div class="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] pl-14 pr-6 py-4 lg:px-6">
     <div>
       <p class="eyebrow mb-0.5">{{ eyebrow }}</p>
       <h1 class="text-base font-bold text-[var(--color-text)]">{{ title }}</h1>

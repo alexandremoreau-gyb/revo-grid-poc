@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { columns } from './columns'
+import { editors } from './editors'
 import { createRows } from './mockRows'
 import { useTableFilters } from '~/composables/grid/useTableFilters'
 import { USER_COMPANIES, USER_ROLES, USER_STATUTS } from './constants'
@@ -14,6 +15,7 @@ export function useUsersTable() {
 
   return {
     columns,
+    editors,
     filteredRows,
     hasActiveFilters,
     resetFilters,

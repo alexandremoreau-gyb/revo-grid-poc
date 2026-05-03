@@ -51,6 +51,10 @@ export interface ColumnDef extends Partial<ColumnRegular> {
    *   ≥ 1050   → tout
    */
   colPriority?: 1 | 2 | 3 | 4
+  /** Type d'input pour la vue mobile (dérive la logique d'édition dans MobileXxxRevoGrid). */
+  mobileInputType?: 'text' | 'number' | 'date' | 'email' | 'select'
+  /** Options du select mobile (uniquement si mobileInputType === 'select'). */
+  selectOptions?: readonly string[]
 }
 
 export interface RowData {

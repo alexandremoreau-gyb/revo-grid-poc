@@ -15,6 +15,8 @@ import {
   selectStyles,
 } from '~/utils/grid/editorHelpers'
 
+type SelectEditorStyleResolver = (value: string) => Record<string, string>
+
 function createInputEditor(
   inputType: 'text' | 'date' | 'number',
   normalize: (raw: string) => unknown,
@@ -79,7 +81,7 @@ function createInputEditor(
       this.committed = true
 
       const value = normalize(this.currentValue)
-      this.save(value, !focusNext)
+      this.save(value, focusNext)
       this.close(focusNext)
     }
 
@@ -93,13 +95,16 @@ function createInputEditor(
       if (this.committed) return
       this.committed = true
       const value = normalize(this.currentValue)
-      this.save(value, false)
+      this.save(value, true)
       this.close(true)
     }
   } as unknown as EditorCtr
 }
 
-function createSelectEditor(options: readonly string[]): EditorCtr {
+function createSelectEditor(
+  options: readonly string[],
+  resolveStyle?: SelectEditorStyleResolver,
+): EditorCtr {
   return class InlineSelectEditor implements InlineEditorBase {
     element: Element | null = null
     editCell?: EditCell
@@ -121,14 +126,17 @@ function createSelectEditor(options: readonly string[]): EditorCtr {
         'select',
         {
           value: this.currentValue,
-          style: selectStyles(),
+          style: {
+            ...selectStyles(),
+            ...(resolveStyle?.(this.currentValue) ?? {}),
+          },
           onChange: (event: Event) => {
             this.currentValue = (event.target as HTMLSelectElement).value
             this.commit(false)
           },
           onKeyDown: (event: KeyboardEvent) => {
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) {
-              event.stopPropagation()
+              event.stopPropagation?.()
             }
             if (event.key === 'Escape') {
               event.preventDefault()
@@ -162,7 +170,7 @@ function createSelectEditor(options: readonly string[]): EditorCtr {
     private commit(focusNext: boolean): void {
       if (this.committed) return
       this.committed = true
-      this.save(this.currentValue, !focusNext)
+      this.save(this.currentValue, focusNext)
       this.close(focusNext)
     }
 
@@ -186,6 +194,9 @@ export function createNumberEditor(): EditorCtr {
   return createInputEditor('number', normalizeNumberValue)
 }
 
-export function createStatusEditor(options: readonly string[]): EditorCtr {
-  return createSelectEditor(options)
+export function createStatusEditor(
+  options: readonly string[],
+  resolveStyle?: SelectEditorStyleResolver,
+): EditorCtr {
+  return createSelectEditor(options, resolveStyle)
 }

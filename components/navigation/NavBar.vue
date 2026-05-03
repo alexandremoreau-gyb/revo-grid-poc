@@ -45,7 +45,7 @@ function isActive(href: string) {
 
   <!-- mobile trigger -->
   <button
-    class="fixed left-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm lg:hidden"
+    class="fixed left-2 top-2 z-50 flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm lg:hidden"
     type="button"
     @click="mobileOpen = !mobileOpen"
   >
